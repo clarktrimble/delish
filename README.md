@@ -1,6 +1,8 @@
 
 # Delish
 
+![4byte_burger_onebit](https://github.com/clarktrimble/delish/assets/5055161/cdd74e04-dde1-45b7-931b-13396d53f7b1)
+
 Coordinated startup and shutdown for Golang http server and associated services
 
 ## Why?
