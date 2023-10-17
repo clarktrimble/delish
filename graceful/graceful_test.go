@@ -26,19 +26,17 @@ var _ = Describe("Graceful", func() {
 		ctx context.Context
 		lgr *mock.Logger
 		wg  sync.WaitGroup
-		to  time.Duration
 	)
 
 	BeforeEach(func() {
 		ctx = context.Background()
 		lgr = mock.NewLogger()
-		to = 10 * time.Second
 	})
 
 	Describe("initializing the package", func() {
 
 		JustBeforeEach(func() {
-			ctx = Initialize(ctx, &wg, to, lgr)
+			ctx = Initialize(ctx, &wg, lgr)
 		})
 
 		When("all is well", func() {
@@ -69,7 +67,7 @@ var _ = Describe("Graceful", func() {
 
 		When("all is well", func() {
 			BeforeEach(func() {
-				ctxCancel := Initialize(context.Background(), &wg, to, lgr)
+				ctxCancel := Initialize(context.Background(), &wg, lgr)
 				go testSvc{}.Serve(ctxCancel, &wg, lgr)
 			})
 

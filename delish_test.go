@@ -62,6 +62,9 @@ var _ = Describe("Server", func() {
 		)
 
 		JustBeforeEach(func() {
+			// give the server a few cycles to start
+			time.Sleep(9 * time.Millisecond)
+
 			response, err := http.Get("http://:8083")
 			Expect(err).To(BeNil())
 
@@ -70,7 +73,7 @@ var _ = Describe("Server", func() {
 			Expect(err).To(BeNil())
 
 			cancel()
-			// pause for shutdown
+			// give shutdown a few to complete
 			time.Sleep(9 * time.Millisecond)
 		})
 
