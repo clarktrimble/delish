@@ -15,6 +15,13 @@ type Respond struct {
 	Logger Logger
 }
 
+// Ok responds with 200
+func (rp *Respond) Ok(ctx context.Context) {
+
+	header(rp.Writer, 200)
+	rp.Write(ctx, []byte(`{"status":"ok"}`))
+}
+
 // NotOk logs an error and responds with it
 func (rp *Respond) NotOk(ctx context.Context, code int, err error) {
 

@@ -25,7 +25,7 @@ type demoSvc struct {
 func (svc *demoSvc) getBrunch(writer http.ResponseWriter, request *http.Request) {
 
 	ctx := request.Context()
-	//rp := svc.Server.NewResponder(writer)
+
 	rp := &delish.Respond{
 		Writer: writer,
 		Logger: svc.Server.Logger,

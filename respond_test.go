@@ -38,6 +38,21 @@ var _ = Describe("Respond(ing)", func() {
 		}
 	})
 
+	Describe("with ok", func() {
+
+		JustBeforeEach(func() {
+			rp.Ok(ctx)
+		})
+
+		When("all goes well", func() {
+			It("responds with http status and blerb", func() {
+
+				Expect(writer.Code).To(Equal(200))
+				Expect(writer.Body.String()).To(Equal(`{"status":"ok"}`))
+			})
+		})
+	})
+
 	Describe("with not ok", func() {
 		var (
 			code int
