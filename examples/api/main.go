@@ -45,7 +45,7 @@ func main() {
 	lgr := &minlog.MinLog{}
 	ctx := lgr.WithFields(context.Background(), "run_id", hondo.Rand(7))
 
-	ctx = graceful.Initialize(ctx, &wg, 6*cfg.Server.Timeout, lgr)
+	ctx = graceful.Initialize(ctx, &wg, lgr)
 
 	// create router/handler, and server
 
