@@ -8,6 +8,10 @@ import (
 
 // Todo: provide one stop calling LogRequest n Response n ReplaceCtx, perhaps Use ??
 
+var (
+	RedactHeaders = map[string]bool{}
+)
+
 // LogRequest is a middleware which logs the request
 func LogRequest(logger Logger, rand func(int) string, next http.Handler) http.HandlerFunc {
 
@@ -32,12 +36,27 @@ func LogRequest(logger Logger, rand func(int) string, next http.Handler) http.Ha
 			"body", string(body),
 			"remote_ip", ip,
 			"remote_port", port,
-			"headers", request.Header,
-			// Todo: redact selected headers
+			"headers", redact(request.Header),
 		)
 
 		next.ServeHTTP(writer, request)
 	}
+}
+
+// unexported
+
+func redact(header http.Header) (redacted http.Header) {
+
+	redacted = header.Clone()
+	for key := range header {
+
+		redacted[key] = header[key]
+		if RedactHeaders[key] {
+			redacted[key] = []string{"--redacted--"}
+		}
+	}
+
+	return
 }
 
 func ipPort(addr string) (ip, port string) {

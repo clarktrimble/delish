@@ -5,19 +5,14 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	. "github.com/clarktrimble/delish"
+	"github.com/clarktrimble/delish/test/help"
 	"github.com/clarktrimble/delish/test/mock"
 )
-
-func TestServer(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Server Suite")
-}
 
 var _ = Describe("Respond(ing)", func() {
 	var (
@@ -163,7 +158,7 @@ var _ = Describe("Respond(ing)", func() {
 		When("write fails", func() {
 			BeforeEach(func() {
 				data = []byte(`{"ima":"pc"}`)
-				rp.Writer = &errorResponder{}
+				rp.Writer = &help.ErrorResponder{}
 			})
 
 			It("logs the error", func() {
@@ -175,19 +170,3 @@ var _ = Describe("Respond(ing)", func() {
 
 	})
 })
-
-type errorResponder struct{}
-
-func (buf *errorResponder) Header() (hdr http.Header) {
-
-	hdr = http.Header{}
-	return
-}
-
-func (buf *errorResponder) Write(body []byte) (count int, err error) {
-
-	err = fmt.Errorf("oops")
-	return
-}
-
-func (buf *errorResponder) WriteHeader(status int) {}

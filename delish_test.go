@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"sync"
+	"testing"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -14,6 +15,11 @@ import (
 	. "github.com/clarktrimble/delish"
 	"github.com/clarktrimble/delish/test/mock"
 )
+
+func TestDelish(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Delish Suite")
+}
 
 var _ = Describe("Server", func() {
 	var (

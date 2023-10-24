@@ -80,9 +80,25 @@ var _ = Describe("LogRequest", func() {
 						"request_id":  "123123123",
 					}))
 				})
-			})
-		})
 
+				When("and a header is flagged for redaction", func() {
+					BeforeEach(func() {
+						RedactHeaders = map[string]bool{"X-Authorization-Token": true}
+						request.Header.Set("X-Authorization-Token", "this-is-secret")
+					})
+
+					It("redacts that header in the logging", func() {
+						Expect(lgr.Logged).To(HaveLen(1))
+						Expect(lgr.Logged[0]["headers"]).To(Equal(http.Header{
+							"Content-Type":          []string{"application/json"},
+							"X-Authorization-Token": []string{"--redacted--"},
+						}))
+					})
+				})
+
+			})
+
+		})
 	})
 })
 

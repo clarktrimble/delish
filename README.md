@@ -16,8 +16,9 @@ Why wrap the stdlib http server?
 
  - bring your own router
  - log requests and responses
+ - redact selected headers from logging
  - response helper
- - demonstrate super handy service layer pattern (ala Uncle Bob's Clean Architecture)
+ - demonstrate super handy service layer (in the spirit of Uncle Bob's Clean Architecture)
 
 ## Example
 
@@ -109,6 +110,15 @@ See https://github.com/clarktrimble/sabot for more.
     msg > shutting down http service ..  ::run_id::v80QW6B
     msg > http service stopped  ::run_id::v80QW6B
     msg > stopped  ::run_id::v80QW6B
+
+Minimal in the sense that they're logged by `minlog` as seen in examples.
+Typically we'll use something sending json or other structured output.
+
+## Header Redaction
+
+    RedactHeaders = map[string]bool{"X-Authorization-Token": true}
+
+And the value for these will be logged as `--redacted--`.
 
 ## Golang (Anti) Idioms
 
