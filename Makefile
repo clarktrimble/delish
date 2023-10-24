@@ -35,4 +35,3 @@ ${TARGETS}:
 
 .PHONY:  test
 
-## Todo: exclude examples and test help from testing

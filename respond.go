@@ -38,7 +38,7 @@ func (rp *Respond) NotFound(ctx context.Context) {
 	rp.Write(ctx, []byte(`{"not":"found"}`))
 }
 
-// WriteObj responds with marshalled objects by key
+// WriteObjects responds with marshalled objects by key
 func (rp *Respond) WriteObjects(ctx context.Context, objects map[string]any) {
 
 	header(rp.Writer, 0)
