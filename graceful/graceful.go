@@ -10,14 +10,26 @@ import (
 	"syscall"
 )
 
-// Graceful is for a graceful shutdown
+// Todo: would launch be a better home?
+
+var (
+	stop     []os.Signal = []os.Signal{syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, os.Interrupt}
+	graceful *Graceful
+)
+
+// Logger specifies a logger.
+type Logger interface {
+	Info(ctx context.Context, msg string, kv ...interface{})
+}
+
+// Graceful is for a graceful shutdown.
 type Graceful struct {
 	WaitGroup *sync.WaitGroup
 	Cancel    context.CancelFunc
 	Logger    Logger
 }
 
-// New creates a graceful
+// Initialize sets up the one and only graceful; singelton!
 func Initialize(ctx context.Context, wg *sync.WaitGroup, lgr Logger) context.Context {
 
 	ctx, cancel := context.WithCancel(ctx)
@@ -31,7 +43,7 @@ func Initialize(ctx context.Context, wg *sync.WaitGroup, lgr Logger) context.Con
 	return ctx
 }
 
-// Wait blocks until interrupted, cancels ctx, waits for group, and exits
+// Wait blocks until interrupted, cancels ctx, waits for group, and exits.
 func Wait(ctx context.Context) {
 
 	// wait for interrupt
@@ -50,10 +62,3 @@ func Wait(ctx context.Context) {
 
 	graceful.Logger.Info(ctx, "stopped")
 }
-
-// unexported
-
-var (
-	stop     []os.Signal = []os.Signal{syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, os.Interrupt}
-	graceful *Graceful
-)

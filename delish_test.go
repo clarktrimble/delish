@@ -37,24 +37,51 @@ var _ = Describe("Server", func() {
 			cfg *Config
 		)
 
-		JustBeforeEach(func() {
-			svr = cfg.New(handler, lgr)
+		BeforeEach(func() {
+			cfg = &Config{
+				Port:    8083,
+				Timeout: 33 * time.Second,
+			}
+			handler = http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {})
 		})
 
-		When("all goes well", func() {
-			BeforeEach(func() {
-				cfg = &Config{
-					Port:    8083,
-					Timeout: 33 * time.Second,
-				}
-				handler = http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {})
+		Describe("with no frills", func() {
+
+			JustBeforeEach(func() {
+				svr = cfg.New(handler, lgr)
 			})
 
-			It("creates a well formed server", func() {
-				Expect(svr.Addr).To(Equal(":8083"))
-				Expect(svr.Handler).ToNot(BeNil())
-				Expect(svr.Logger).To(Equal(lgr))
-				Expect(svr.Timeout).To(Equal(33 * time.Second))
+			When("all goes well", func() {
+
+				It("creates a well formed server", func() {
+					Expect(svr.Addr).To(Equal(":8083"))
+					Expect(svr.Handler).ToNot(BeNil())
+					Expect(svr.Logger).To(Equal(lgr))
+					Expect(svr.Timeout).To(Equal(33 * time.Second))
+				})
+			})
+		})
+
+		Describe("with request/response logging", func() {
+			var (
+				ctx context.Context
+			)
+
+			JustBeforeEach(func() {
+				svr = cfg.NewWithLog(ctx, handler, lgr)
+			})
+
+			When("all goes well", func() {
+				BeforeEach(func() {
+					ctx = context.Background()
+				})
+
+				It("creates a well formed server", func() {
+					Expect(svr.Addr).To(Equal(":8083"))
+					Expect(svr.Handler).ToNot(BeNil())
+					Expect(svr.Logger).To(Equal(lgr))
+					Expect(svr.Timeout).To(Equal(33 * time.Second))
+				})
 			})
 		})
 	})
@@ -69,7 +96,7 @@ var _ = Describe("Server", func() {
 
 		JustBeforeEach(func() {
 			// give the server a few cycles to start
-			time.Sleep(9 * time.Millisecond)
+			time.Sleep(19 * time.Millisecond)
 
 			response, err := http.Get("http://:8083")
 			Expect(err).To(BeNil())
@@ -80,7 +107,7 @@ var _ = Describe("Server", func() {
 
 			cancel()
 			// give shutdown a few to complete
-			time.Sleep(9 * time.Millisecond)
+			time.Sleep(19 * time.Millisecond)
 		})
 
 		When("all goes well", func() {
@@ -103,6 +130,8 @@ var _ = Describe("Server", func() {
 
 				Expect(lgr.Logged[2]["msg"]).To(Equal("shutting down http service .."))
 				Expect(lgr.Logged[3]["msg"]).To(Equal("http service stopped"))
+				// Todo: sometimes getting "shutdown failed" ??
+				//       doubling sleeps to 19 above did not help, but "feels" like a timing issue ..
 			})
 		})
 	})

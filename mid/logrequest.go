@@ -15,6 +15,8 @@ var (
 // LogRequest is a middleware which logs the request
 func LogRequest(logger Logger, rand func(int) string, next http.Handler) http.HandlerFunc {
 
+	// Todo: just call hondo.Rand here rather than pass in func, yeah?
+
 	return func(writer http.ResponseWriter, request *http.Request) {
 
 		ctx := request.Context()

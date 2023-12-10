@@ -12,8 +12,17 @@ import (
 	"sync"
 	"time"
 
+	"github.com/clarktrimble/delish/mid"
+	"github.com/clarktrimble/hondo"
 	"github.com/pkg/errors"
 )
+
+// Logger specifies a logging interface.
+type Logger interface {
+	Info(ctx context.Context, msg string, kv ...interface{})
+	Error(ctx context.Context, msg string, err error, kv ...interface{})
+	WithFields(ctx context.Context, kv ...interface{}) context.Context
+}
 
 // Config is the server's configuration
 type Config struct {
@@ -31,15 +40,26 @@ type Server struct {
 }
 
 // New creates a server from config
-func (cfg *Config) New(handler http.Handler, lgr Logger) (srv *Server) {
+func (cfg *Config) New(handler http.Handler, lgr Logger) (svr *Server) {
 
-	srv = &Server{
+	svr = &Server{
 		Addr:    fmt.Sprintf("%s:%d", cfg.Host, cfg.Port),
 		Timeout: cfg.Timeout,
 		Handler: handler,
 		Logger:  lgr,
 	}
 
+	return
+}
+
+// NewWithLog is a convinience creating a server wrapped with logging from config.
+func (cfg *Config) NewWithLog(ctx context.Context, handler http.Handler, lgr Logger) (svr *Server) {
+
+	handler = mid.LogResponse(lgr, handler)
+	handler = mid.LogRequest(lgr, hondo.Rand, handler)
+	handler = mid.ReplaceCtx(ctx, handler)
+
+	svr = cfg.New(handler, lgr)
 	return
 }
 

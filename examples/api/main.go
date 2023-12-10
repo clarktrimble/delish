@@ -9,7 +9,6 @@ import (
 	"github.com/clarktrimble/hondo"
 
 	"github.com/clarktrimble/delish/graceful"
-	"github.com/clarktrimble/delish/mid"
 
 	"github.com/clarktrimble/delish/examples/api/demosvc"
 	"github.com/clarktrimble/delish/examples/api/minlog"
@@ -50,12 +49,7 @@ func main() {
 	// create router/handler, and server
 
 	rtr := minroute.New(lgr)
-
-	handler := mid.LogResponse(lgr, rtr)
-	handler = mid.LogRequest(lgr, hondo.Rand, handler)
-	handler = mid.ReplaceCtx(ctx, handler)
-
-	svr := cfg.Server.New(handler, lgr)
+	svr := cfg.Server.NewWithLog(ctx, rtr, lgr)
 
 	// register route directly
 
