@@ -52,11 +52,9 @@ func main() {
 	svr := cfg.Server.NewWithLog(ctx, rtr, lgr)
 
 	// register route directly
-
-	rtr.Set("GET", "/config", svr.ObjHandler("config", cfg))
-
 	// or via service layer
 
+	rtr.Set("GET", "/config", delish.ObjHandler(lgr, "config", cfg))
 	demosvc.AddRoute(svr, rtr)
 
 	// delicious!

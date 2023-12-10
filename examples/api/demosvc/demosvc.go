@@ -6,6 +6,8 @@ import (
 	"github.com/clarktrimble/delish"
 )
 
+// Todo: example svc here is odd, make regular with New, replace Server with Logger, etc
+
 func AddRoute(svr *delish.Server, rtr Router) (svc *demoSvc) {
 
 	svc = &demoSvc{
