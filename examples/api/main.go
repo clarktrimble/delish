@@ -54,7 +54,7 @@ func main() {
 	// register route directly
 	// or via service layer
 
-	rtr.Set("GET", "/config", delish.ObjHandler(lgr, "config", cfg))
+	rtr.Set("GET", "/config", delish.ObjHandler("config", cfg, lgr))
 	demosvc.AddRoute(svr, rtr)
 
 	// delicious!

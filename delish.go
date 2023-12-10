@@ -81,7 +81,7 @@ func (svr *Server) Start(ctx context.Context, wg *sync.WaitGroup) {
 }
 
 // ObjHandler is a convinience method that responds with a marshalled named object
-func ObjHandler(lgr Logger, name string, obj any) http.HandlerFunc {
+func ObjHandler(name string, obj any, lgr Logger) http.HandlerFunc {
 
 	return func(writer http.ResponseWriter, request *http.Request) {
 
