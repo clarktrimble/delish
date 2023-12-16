@@ -54,9 +54,9 @@ Why wrap the stdlib http server?
 ## Logging Interface
 
     type Logger interface {
-      Info(ctx context.Context, msg string, kv ...interface{})
-      Error(ctx context.Context, msg string, err error, kv ...interface{})
-      WithFields(ctx context.Context, kv ...interface{}) context.Context
+      Info(ctx context.Context, msg string, kv ...any)
+      Error(ctx context.Context, msg string, err error, kv ...any)
+      WithFields(ctx context.Context, kv ...any) context.Context
     }
 
 Yeah, everyone has one of these ..  The main idea with this one is to accept fields as key/value

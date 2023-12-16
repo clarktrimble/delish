@@ -12,7 +12,7 @@ import (
 
 // Logger specifies a logging interface.
 type Logger interface {
-	Error(ctx context.Context, msg string, err error, kv ...interface{})
+	Error(ctx context.Context, msg string, err error, kv ...any)
 }
 
 // Respond provides convinience methods when responding to a json request.

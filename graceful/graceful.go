@@ -19,7 +19,7 @@ var (
 
 // Logger specifies a logger.
 type Logger interface {
-	Info(ctx context.Context, msg string, kv ...interface{})
+	Info(ctx context.Context, msg string, kv ...any)
 }
 
 // Graceful is for a graceful shutdown.
