@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/clarktrimble/delish"
+	"github.com/clarktrimble/delish/respond"
 )
 
 // Todo: example svc here is odd, make regular with New, replace Server with Logger, etc
@@ -28,7 +29,7 @@ func (svc *demoSvc) getBrunch(writer http.ResponseWriter, request *http.Request)
 
 	ctx := request.Context()
 
-	rp := &delish.Respond{
+	rp := &respond.Respond{
 		Writer: writer,
 		Logger: svc.Server.Logger,
 	}
