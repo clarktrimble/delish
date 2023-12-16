@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/clarktrimble/delish/mid"
+	"github.com/clarktrimble/delish/respond"
 	"github.com/clarktrimble/hondo"
 	"github.com/pkg/errors"
 )
@@ -85,7 +86,7 @@ func ObjHandler(name string, obj any, lgr Logger) http.HandlerFunc {
 
 	return func(writer http.ResponseWriter, request *http.Request) {
 
-		rp := &Respond{
+		rp := &respond.Respond{
 			Writer: writer,
 			Logger: lgr,
 		}

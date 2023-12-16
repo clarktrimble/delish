@@ -1,18 +1,24 @@
-package delish_test
+package respond_test
 
 import (
 	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	. "github.com/clarktrimble/delish"
+	. "github.com/clarktrimble/delish/respond"
 	"github.com/clarktrimble/delish/test/help"
 	"github.com/clarktrimble/delish/test/mock"
 )
+
+func TestRespond(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Respond Suite")
+}
 
 var _ = Describe("Respond(ing)", func() {
 	var (

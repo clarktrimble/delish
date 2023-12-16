@@ -1,4 +1,5 @@
-package delish
+// Package respond provides logging help when responding to a json request.
+package respond
 
 import (
 	"context"
@@ -8,6 +9,11 @@ import (
 
 	"github.com/pkg/errors"
 )
+
+// Logger specifies a logging interface.
+type Logger interface {
+	Error(ctx context.Context, msg string, err error, kv ...interface{})
+}
 
 // Respond provides convinience methods when responding to a json request.
 type Respond struct {

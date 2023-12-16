@@ -4,14 +4,20 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/clarktrimble/delish"
+	"github.com/clarktrimble/delish/respond"
 	"github.com/pkg/errors"
 )
+
+// Logger specifies a logging interface
+type Logger interface {
+	Info(ctx context.Context, msg string, kv ...interface{})
+	Error(ctx context.Context, msg string, err error, kv ...interface{})
+	WithFields(ctx context.Context, kv ...interface{}) context.Context
+}
 
 // MinRoute maps http methods and paths to handlers
 type MinRoute struct {
 	Logger Logger
-
 	routes map[string]map[string]http.HandlerFunc
 }
 
@@ -66,7 +72,7 @@ func (rtr *MinRoute) Set(method, path string, handler http.HandlerFunc) (err err
 
 func notFound(ctx context.Context, writer http.ResponseWriter, lgr Logger) {
 
-	rp := &delish.Respond{
+	rp := &respond.Respond{
 		Writer: writer,
 		Logger: lgr,
 	}
