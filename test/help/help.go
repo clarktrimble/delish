@@ -6,6 +6,8 @@ import (
 	"net/http"
 )
 
+// Todo: worth pkg here?
+
 type ErrorResponder struct{}
 
 func (buf *ErrorResponder) Header() (hdr http.Header) {

@@ -118,7 +118,10 @@ func (svr *Server) wait(ctx context.Context, httpServer *http.Server, wg *sync.W
 	<-ctx.Done()
 	svr.Logger.Info(ctx, "shutting down http service")
 
-	err := httpServer.Shutdown(ctx)
+	sdCtx, sdCancel := context.WithTimeout(context.Background(), 12*svr.Timeout)
+	defer sdCancel()
+
+	err := httpServer.Shutdown(sdCtx)
 	if err != nil {
 		err = errors.Wrapf(err, "failed to shutdown on: %s", svr.Addr)
 		svr.Logger.Error(ctx, "shutdown failed", err)

@@ -26,24 +26,24 @@ var _ = Describe("Server", func() {
 		handler http.Handler
 		lgr     *mock.LoggerMock
 		svr     *Server
+		cfg     *Config
 	)
 
 	BeforeEach(func() {
 		lgr = &mock.LoggerMock{
-			InfoFunc: func(ctx context.Context, msg string, kv ...any) {},
+			InfoFunc:  func(ctx context.Context, msg string, kv ...any) {},
+			ErrorFunc: func(ctx context.Context, msg string, err error, kv ...any) {},
+		}
+
+		cfg = &Config{
+			Port:    8083,
+			Timeout: 33 * time.Second,
 		}
 	})
 
 	Describe("creating a server", func() {
-		var (
-			cfg *Config
-		)
 
 		BeforeEach(func() {
-			cfg = &Config{
-				Port:    8083,
-				Timeout: 33 * time.Second,
-			}
 			handler = http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {})
 		})
 
@@ -93,24 +93,7 @@ var _ = Describe("Server", func() {
 			ctx    context.Context
 			wg     sync.WaitGroup
 			cancel context.CancelFunc
-			bdy    []byte
 		)
-
-		JustBeforeEach(func() {
-			// give the server a few cycles to start
-			time.Sleep(19 * time.Millisecond)
-
-			response, err := http.Get("http://:8083")
-			Expect(err).To(BeNil())
-
-			bdy, err = io.ReadAll(response.Body)
-			response.Body.Close()
-			Expect(err).To(BeNil())
-
-			cancel()
-			// give shutdown a few to complete
-			time.Sleep(19 * time.Millisecond)
-		})
 
 		When("all goes well", func() {
 			BeforeEach(func() {
@@ -119,23 +102,38 @@ var _ = Describe("Server", func() {
 					fmt.Fprint(writer, `{"ima": "pc"}`)
 				})
 
-				svr = (&Config{Port: 8083}).New(handler, lgr)
+				svr = cfg.New(handler, lgr)
 				svr.Start(ctx, &wg)
 			})
 
-			It("starts, serves, and stops", func() {
+			//It("starts, serves, and stops", MustPassRepeatedly(33), func() {
+			It("starts, serves, and stops", MustPassRepeatedly(33), func() {
+
+				// check for startup
+
+				ic := lgr.InfoCalls
+				Eventually(ic).Should(HaveLen(2))
+				Expect(ic()[0].Msg).To(Equal("starting http service"))
+				Expect(ic()[1].Msg).To(Equal("listening"))
+
+				// make a request
+
+				time.Sleep(9 * time.Millisecond) // srv needs a blip to actually start
+				response, err := http.Get("http://:8083")
+				Expect(err).To(BeNil())
+
+				bdy, err := io.ReadAll(response.Body)
+				response.Body.Close()
+				Expect(err).To(BeNil())
 				Expect(bdy).To(BeEquivalentTo(`{"ima": "pc"}`))
 
-				// Todo: sometimes getting "shutdown failed" ??
-				//       doubling sleeps to 19 above did not help, but "feels" like a timing issue ..
-				//       try eventuals?
+				// check for shutdown
 
-				ic := lgr.InfoCalls()
-				Expect(ic).To(HaveLen(4))
-				Expect(ic[0].Msg).To(Equal("starting http service"))
-				Expect(ic[1].Msg).To(Equal("listening"))
-				Expect(ic[2].Msg).To(Equal("shutting down http service"))
-				Expect(ic[3].Msg).To(Equal("http service stopped"))
+				cancel()
+
+				Eventually(ic).Should(HaveLen(4))
+				Expect(ic()[2].Msg).To(Equal("shutting down http service"))
+				Expect(ic()[3].Msg).To(Equal("http service stopped"))
 			})
 		})
 	})
