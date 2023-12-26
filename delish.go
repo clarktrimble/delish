@@ -18,6 +18,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+//go:generate moq -pkg mock -out mock/mock.go . Logger
+
 // Logger specifies a logging interface.
 type Logger interface {
 	Info(ctx context.Context, msg string, kv ...any)
@@ -114,7 +116,7 @@ func (svr *Server) wait(ctx context.Context, httpServer *http.Server, wg *sync.W
 	defer wg.Done()
 
 	<-ctx.Done()
-	svr.Logger.Info(ctx, "shutting down http service ..")
+	svr.Logger.Info(ctx, "shutting down http service")
 
 	err := httpServer.Shutdown(ctx)
 	if err != nil {

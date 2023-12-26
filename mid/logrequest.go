@@ -6,8 +6,6 @@ import (
 	"strings"
 )
 
-// Todo: provide one stop calling LogRequest n Response n ReplaceCtx, perhaps Use ??
-
 var (
 	RedactHeaders = map[string]bool{}
 )

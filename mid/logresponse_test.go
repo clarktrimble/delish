@@ -1,6 +1,7 @@
 package mid_test
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 
@@ -8,19 +9,20 @@ import (
 	. "github.com/onsi/gomega"
 
 	. "github.com/clarktrimble/delish/mid"
-	"github.com/clarktrimble/delish/test/mock"
+	"github.com/clarktrimble/delish/mock"
 )
 
 var _ = Describe("LogResponse", func() {
 	var (
 		handler http.Handler
-		lgr     *mock.Logger
+		lgr     *mock.LoggerMock
 	)
 
 	BeforeEach(func() {
 		handler = jsonHandler(201, `{"ima":"pc"}`)
-
-		lgr = mock.NewLogger()
+		lgr = &mock.LoggerMock{
+			InfoFunc: func(ctx context.Context, msg string, kv ...any) {},
+		}
 	})
 
 	Describe("logging the response", func() {
@@ -34,12 +36,13 @@ var _ = Describe("LogResponse", func() {
 			})
 
 			It("logs fields related to the response", func() {
-				Expect(lgr.Logged).To(HaveLen(1))
-				Expect(delog(lgr.Logged[0])).To(Equal(map[string]any{
+				ic := lgr.InfoCalls()
+				Expect(ic).To(HaveLen(1))
+				Expect(ic[0].Msg).To(Equal("sending response"))
+				Expect(mapLog(ic[0].Kv)).To(Equal(map[string]any{
 					"body":    `{"ima":"pc"}`,
 					"elapsed": "replaced-for-unit",
 					"headers": http.Header{"Content-Type": []string{"application/json"}},
-					"msg":     "sending response",
 					"status":  201,
 				}))
 			})
@@ -60,17 +63,20 @@ func jsonHandler(code int, msg string) http.HandlerFunc {
 	}
 }
 
-func delog(line map[string]any) (scrub map[string]any) {
+func mapLog(kv []any) (mapped map[string]any) {
 
-	scrub = map[string]any{}
-	for key, val := range line {
+	mapped = map[string]any{}
+
+	for i := 0; i < len(kv); i += 2 {
+		key := kv[i].(string)
+		val := kv[i+1]
 
 		if key == "elapsed" {
 			Expect(val).To(BeNumerically(">", 100))
 			Expect(val).To(BeNumerically("<", 1000000))
 			val = "replaced-for-unit"
 		}
-		scrub[key] = val
+		mapped[key] = val
 	}
 
 	return

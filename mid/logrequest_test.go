@@ -2,6 +2,7 @@ package mid_test
 
 import (
 	"bytes"
+	"context"
 	"net/http"
 	"net/http/httptest"
 
@@ -9,20 +10,25 @@ import (
 	. "github.com/onsi/gomega"
 
 	. "github.com/clarktrimble/delish/mid"
-	"github.com/clarktrimble/delish/test/mock"
+	"github.com/clarktrimble/delish/mock"
 )
 
 var _ = Describe("LogRequest", func() {
 	var (
 		handler http.Handler
-		lgr     *mock.Logger
 		request *http.Request
+		lgr     *mock.LoggerMock
 	)
 
 	BeforeEach(func() {
-		handler = http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		})
-		lgr = mock.NewLogger()
+		handler = http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {})
+		lgr = &mock.LoggerMock{
+			ErrorFunc: func(ctx context.Context, msg string, err error, kv ...any) {},
+			InfoFunc:  func(ctx context.Context, msg string, kv ...any) {},
+			WithFieldsFunc: func(ctx context.Context, kv ...any) context.Context {
+				return ctx
+			},
+		}
 	})
 
 	Describe("logging the request", func() {
@@ -42,18 +48,17 @@ var _ = Describe("LogRequest", func() {
 				})
 
 				It("logs mostly empty fields related to the request and does not panic", func() {
-					Expect(lgr.Logged).To(HaveLen(1))
-					Expect(lgr.Logged[0]["msg"]).To(Equal("received request"))
-					Expect(lgr.Logged[0]).To(Equal(map[string]any{
-						"body":        "",
-						"headers":     http.Header(nil),
-						"method":      "",
-						"msg":         "received request",
-						"path":        "",
-						"query":       map[string][]string(nil),
-						"remote_ip":   "",
-						"remote_port": "",
-						"request_id":  "123123123",
+					ic := lgr.InfoCalls()
+					Expect(ic).To(HaveLen(1))
+					Expect(ic[0].Msg).To(Equal("received request"))
+					Expect(ic[0].Kv).To(HaveExactElements([]any{
+						"method", "",
+						"path", "",
+						"query", map[string][]string(nil),
+						"body", "",
+						"remote_ip", "",
+						"remote_port", "",
+						"headers", http.Header(nil),
 					}))
 				})
 			})
@@ -67,17 +72,17 @@ var _ = Describe("LogRequest", func() {
 				})
 
 				It("logs fields related to the request", func() {
-					Expect(lgr.Logged).To(HaveLen(1))
-					Expect(lgr.Logged[0]).To(Equal(map[string]any{
-						"body":        `{"ima":"pc"}`,
-						"headers":     http.Header{"Content-Type": []string{"application/json"}},
-						"method":      "POST",
-						"msg":         "received request",
-						"path":        "/latvia/riga",
-						"query":       map[string][]string{},
-						"remote_ip":   "10.11.12.13",
-						"remote_port": "34562",
-						"request_id":  "123123123",
+					ic := lgr.InfoCalls()
+					Expect(ic).To(HaveLen(1))
+					Expect(ic[0].Msg).To(Equal("received request"))
+					Expect(ic[0].Kv).To(HaveExactElements([]any{
+						"method", "POST",
+						"path", "/latvia/riga",
+						"query", map[string][]string{},
+						"body", `{"ima":"pc"}`,
+						"remote_ip", "10.11.12.13",
+						"remote_port", "34562",
+						"headers", http.Header{"Content-Type": []string{"application/json"}},
 					}))
 				})
 
@@ -88,10 +93,20 @@ var _ = Describe("LogRequest", func() {
 					})
 
 					It("redacts that header in the logging", func() {
-						Expect(lgr.Logged).To(HaveLen(1))
-						Expect(lgr.Logged[0]["headers"]).To(Equal(http.Header{
-							"Content-Type":          []string{"application/json"},
-							"X-Authorization-Token": []string{"--redacted--"},
+						ic := lgr.InfoCalls()
+						Expect(ic).To(HaveLen(1))
+						Expect(ic[0].Msg).To(Equal("received request"))
+						Expect(ic[0].Kv).To(HaveExactElements([]any{
+							"method", "POST",
+							"path", "/latvia/riga",
+							"query", map[string][]string{},
+							"body", `{"ima":"pc"}`,
+							"remote_ip", "10.11.12.13",
+							"remote_port", "34562",
+							"headers", http.Header{
+								"Content-Type":          []string{"application/json"},
+								"X-Authorization-Token": []string{"--redacted--"},
+							},
 						}))
 					})
 				})
@@ -102,6 +117,7 @@ var _ = Describe("LogRequest", func() {
 	})
 })
 
+// Todo: undo!!
 func notRand(n int) string {
 
 	return "123123123"

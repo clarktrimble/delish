@@ -13,7 +13,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	. "github.com/clarktrimble/delish"
-	"github.com/clarktrimble/delish/test/mock"
+	"github.com/clarktrimble/delish/mock"
 )
 
 func TestDelish(t *testing.T) {
@@ -24,12 +24,14 @@ func TestDelish(t *testing.T) {
 var _ = Describe("Server", func() {
 	var (
 		handler http.Handler
-		lgr     *mock.Logger
+		lgr     *mock.LoggerMock
 		svr     *Server
 	)
 
 	BeforeEach(func() {
-		lgr = mock.NewLogger()
+		lgr = &mock.LoggerMock{
+			InfoFunc: func(ctx context.Context, msg string, kv ...any) {},
+		}
 	})
 
 	Describe("creating a server", func() {
@@ -122,16 +124,18 @@ var _ = Describe("Server", func() {
 			})
 
 			It("starts, serves, and stops", func() {
-				Expect(lgr.Logged).To(HaveLen(4))
-				Expect(lgr.Logged[0]["msg"]).To(Equal("starting http service"))
-				Expect(lgr.Logged[1]["msg"]).To(Equal("listening"))
-
 				Expect(bdy).To(BeEquivalentTo(`{"ima": "pc"}`))
 
-				Expect(lgr.Logged[2]["msg"]).To(Equal("shutting down http service .."))
-				Expect(lgr.Logged[3]["msg"]).To(Equal("http service stopped"))
 				// Todo: sometimes getting "shutdown failed" ??
 				//       doubling sleeps to 19 above did not help, but "feels" like a timing issue ..
+				//       try eventuals?
+
+				ic := lgr.InfoCalls()
+				Expect(ic).To(HaveLen(4))
+				Expect(ic[0].Msg).To(Equal("starting http service"))
+				Expect(ic[1].Msg).To(Equal("listening"))
+				Expect(ic[2].Msg).To(Equal("shutting down http service"))
+				Expect(ic[3].Msg).To(Equal("http service stopped"))
 			})
 		})
 	})

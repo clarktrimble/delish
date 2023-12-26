@@ -13,7 +13,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/clarktrimble/delish/test/mock"
+	"github.com/clarktrimble/delish/mock"
 )
 
 func TestMid(t *testing.T) {
@@ -24,13 +24,15 @@ func TestMid(t *testing.T) {
 var _ = Describe("Graceful", func() {
 	var (
 		ctx context.Context
-		lgr *mock.Logger
+		lgr *mock.LoggerMock
 		wg  sync.WaitGroup
 	)
 
 	BeforeEach(func() {
 		ctx = context.Background()
-		lgr = mock.NewLogger()
+		lgr = &mock.LoggerMock{
+			InfoFunc: func(ctx context.Context, msg string, kv ...any) {},
+		}
 	})
 
 	Describe("initializing the package", func() {
@@ -72,12 +74,15 @@ var _ = Describe("Graceful", func() {
 			})
 
 			It("starts, blocks, cancels, waits, and stops", func() {
-				Expect(lgr.Logged).To(HaveLen(5))
-				Expect(lgr.Logged[0]["msg"]).To(Equal("starting testSvc"))
-				Expect(lgr.Logged[1]["msg"]).To(Equal("shutting down .."))
-				Expect(lgr.Logged[2]["msg"]).To(Equal("shutting down testSvc")) // <- triggered by cancel
-				Expect(lgr.Logged[3]["msg"]).To(Equal("testSvc stopped"))       // <- waitgroup'ed for this one!
-				Expect(lgr.Logged[4]["msg"]).To(Equal("stopped"))
+				ic := lgr.InfoCalls()
+				Expect(ic).To(HaveLen(5))
+				Expect(ic[0].Msg).To(Equal("starting testSvc"))
+				Expect(ic[1].Msg).To(Equal("shutting down"))
+				Expect(ic[2].Msg).To(Equal("shutting down testSvc")) // <- triggered by cancel
+				Expect(ic[3].Msg).To(Equal("testSvc stopped"))       // <- waitgroup'ed for this one!
+				Expect(ic[4].Msg).To(Equal("stopped"))
+
+				// Todo: eventurallyy?
 			})
 		})
 

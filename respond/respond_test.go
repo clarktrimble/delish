@@ -10,9 +10,9 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/clarktrimble/delish/mock"
 	. "github.com/clarktrimble/delish/respond"
 	"github.com/clarktrimble/delish/test/help"
-	"github.com/clarktrimble/delish/test/mock"
 )
 
 func TestRespond(t *testing.T) {
@@ -24,14 +24,17 @@ var _ = Describe("Respond(ing)", func() {
 	var (
 		ctx    context.Context
 		writer *httptest.ResponseRecorder
-		lgr    *mock.Logger
+		lgr    *mock.LoggerMock
 		rp     *Respond
 	)
 
 	BeforeEach(func() {
 		ctx = context.Background()
 		writer = httptest.NewRecorder()
-		lgr = mock.NewLogger()
+
+		lgr = &mock.LoggerMock{
+			ErrorFunc: func(ctx context.Context, msg string, err error, kv ...any) {},
+		}
 
 		rp = &Respond{
 			Writer: writer,
@@ -75,9 +78,10 @@ var _ = Describe("Respond(ing)", func() {
 				Expect(writer.Code).To(Equal(500))
 				Expect(writer.Body.String()).To(Equal(`{"error":"oops"}`))
 
-				Expect(lgr.Logged).To(HaveLen(1))
-				Expect(lgr.Logged[0]["msg"]).To(Equal("returning error to client"))
-				Expect(lgr.Logged[0]["error"]).To(ContainSubstring("oops"))
+				ec := lgr.ErrorCalls()
+				Expect(ec).To(HaveLen(1))
+				Expect(ec[0].Msg).To(Equal("returning error to client"))
+				Expect(ec[0].Err.Error()).To(Equal("oops"))
 			})
 		})
 	})
@@ -131,15 +135,16 @@ var _ = Describe("Respond(ing)", func() {
 				Expect(writer.Header()).To(Equal(http.Header{"Content-Type": []string{"application/json"}}))
 				Expect(writer.Body.String()).To(Equal(`{"error": "failed to encode response"}`))
 
-				Expect(lgr.Logged).To(HaveLen(1))
-				Expect(lgr.Logged[0]["msg"]).To(Equal("failed to encode response"))
-				Expect(lgr.Logged[0]["error"]).To(ContainSubstring("unsupported type"))
+				ec := lgr.ErrorCalls()
+				Expect(ec).To(HaveLen(1))
+				Expect(ec[0].Msg).To(Equal("failed to encode response"))
+				Expect(ec[0].Err.Error()).To(ContainSubstring("unsupported type"))
 			})
 		})
 
 	})
 
-	Describe("directly", func() {
+	Describe("with bytes", func() {
 		var (
 			data []byte
 		)
@@ -168,9 +173,10 @@ var _ = Describe("Respond(ing)", func() {
 			})
 
 			It("logs the error", func() {
-				Expect(lgr.Logged).To(HaveLen(1))
-				Expect(lgr.Logged[0]["msg"]).To(Equal("failed to write response"))
-				Expect(lgr.Logged[0]["error"]).To(ContainSubstring("oops"))
+				ec := lgr.ErrorCalls()
+				Expect(ec).To(HaveLen(1))
+				Expect(ec[0].Msg).To(Equal("failed to write response"))
+				Expect(ec[0].Err.Error()).To(Equal("failed to write response: oops"))
 			})
 		})
 
