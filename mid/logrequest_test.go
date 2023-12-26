@@ -3,6 +3,7 @@ package mid_test
 import (
 	"bytes"
 	"context"
+	"math/rand"
 	"net/http"
 	"net/http/httptest"
 
@@ -22,13 +23,15 @@ var _ = Describe("LogRequest", func() {
 
 	BeforeEach(func() {
 		handler = http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {})
+
 		lgr = &mock.LoggerMock{
-			ErrorFunc: func(ctx context.Context, msg string, err error, kv ...any) {},
-			InfoFunc:  func(ctx context.Context, msg string, kv ...any) {},
+			InfoFunc: func(ctx context.Context, msg string, kv ...any) {},
 			WithFieldsFunc: func(ctx context.Context, kv ...any) context.Context {
 				return ctx
 			},
 		}
+
+		rand.Seed(1) //nolint:staticcheck // unit request_id
 	})
 
 	Describe("logging the request", func() {
@@ -39,7 +42,7 @@ var _ = Describe("LogRequest", func() {
 
 		Describe("the hander is wrapped with the middleware", func() {
 			BeforeEach(func() {
-				handler = LogRequest(lgr, notRand, handler)
+				handler = LogRequest(lgr, handler)
 			})
 
 			When("the request is empty", func() {
@@ -59,6 +62,12 @@ var _ = Describe("LogRequest", func() {
 						"remote_ip", "",
 						"remote_port", "",
 						"headers", http.Header(nil),
+					}))
+
+					wfc := lgr.WithFieldsCalls()
+					Expect(wfc).To(HaveLen(1))
+					Expect(wfc[0].Kv).To(HaveExactElements([]any{
+						"request_id", "GIehp1s",
 					}))
 				})
 			})
@@ -116,9 +125,3 @@ var _ = Describe("LogRequest", func() {
 		})
 	})
 })
-
-// Todo: undo!!
-func notRand(n int) string {
-
-	return "123123123"
-}

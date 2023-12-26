@@ -14,7 +14,6 @@ import (
 
 	"github.com/clarktrimble/delish/mid"
 	"github.com/clarktrimble/delish/respond"
-	"github.com/clarktrimble/hondo"
 	"github.com/pkg/errors"
 )
 
@@ -59,7 +58,7 @@ func (cfg *Config) New(handler http.Handler, lgr Logger) (svr *Server) {
 func (cfg *Config) NewWithLog(ctx context.Context, handler http.Handler, lgr Logger) (svr *Server) {
 
 	handler = mid.LogResponse(lgr, handler)
-	handler = mid.LogRequest(lgr, hondo.Rand, handler)
+	handler = mid.LogRequest(lgr, handler)
 	handler = mid.ReplaceCtx(ctx, handler)
 
 	svr = cfg.New(handler, lgr)
