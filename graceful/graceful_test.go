@@ -13,7 +13,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/clarktrimble/delish/test/mock"
+	"github.com/clarktrimble/delish/mock"
 )
 
 func TestMid(t *testing.T) {
@@ -24,13 +24,15 @@ func TestMid(t *testing.T) {
 var _ = Describe("Graceful", func() {
 	var (
 		ctx context.Context
-		lgr *mock.Logger
+		lgr *mock.LoggerMock
 		wg  sync.WaitGroup
 	)
 
 	BeforeEach(func() {
 		ctx = context.Background()
-		lgr = mock.NewLogger()
+		lgr = &mock.LoggerMock{
+			InfoFunc: func(ctx context.Context, msg string, kv ...any) {},
+		}
 	})
 
 	Describe("initializing the package", func() {
@@ -52,42 +54,48 @@ var _ = Describe("Graceful", func() {
 
 	Describe("waiting for an interrupt", func() {
 
-		JustBeforeEach(func() {
-			go func() {
-				proc, err := os.FindProcess(os.Getpid())
-				Expect(err).ToNot(HaveOccurred())
-
-				// interrupt after pausing for Wait
-				time.Sleep(99 * time.Millisecond)
-				_ = proc.Signal(syscall.SIGQUIT)
-			}()
-
-			Wait(ctx)
-		})
-
 		When("all is well", func() {
 			BeforeEach(func() {
+
+				// init graceful and start test service
+
 				ctxCancel := Initialize(context.Background(), &wg, lgr)
-				go testSvc{}.Serve(ctxCancel, &wg, lgr)
+				go testSvc{}.Start(ctxCancel, &wg, lgr)
+
+				// once service is started, signal shutdown
+
+				go func() {
+					ic := lgr.InfoCalls
+					Eventually(ic).Should(HaveLen(1))
+					Expect(ic()[0].Msg).To(Equal("starting testSvc"))
+
+					proc, err := os.FindProcess(os.Getpid())
+					Expect(err).ToNot(HaveOccurred())
+					err = proc.Signal(syscall.SIGQUIT)
+					Expect(err).ToNot(HaveOccurred())
+				}()
+
+				// block with graceful, waiting for signal
+
+				Wait(ctx)
 			})
 
 			It("starts, blocks, cancels, waits, and stops", func() {
-				Expect(lgr.Logged).To(HaveLen(5))
-				Expect(lgr.Logged[0]["msg"]).To(Equal("starting testSvc"))
-				Expect(lgr.Logged[1]["msg"]).To(Equal("shutting down .."))
-				Expect(lgr.Logged[2]["msg"]).To(Equal("shutting down testSvc")) // <- triggered by cancel
-				Expect(lgr.Logged[3]["msg"]).To(Equal("testSvc stopped"))       // <- waitgroup'ed for this one!
-				Expect(lgr.Logged[4]["msg"]).To(Equal("stopped"))
+				ic := lgr.InfoCalls
+				Eventually(ic).Should(HaveLen(5))
+				Expect(ic()[1].Msg).To(Equal("shutting down"))
+				Expect(ic()[2].Msg).To(Equal("shutting down testSvc")) // <- triggered by cancel
+				Expect(ic()[3].Msg).To(Equal("testSvc stopped"))       //
+				Expect(ic()[4].Msg).To(Equal("stopped"))               // <- waitgroup'ed for this one!
 			})
 		})
-
 	})
 
 })
 
 type testSvc struct{}
 
-func (svc testSvc) Serve(ctx context.Context, wg *sync.WaitGroup, lgr Logger) {
+func (svc testSvc) Start(ctx context.Context, wg *sync.WaitGroup, lgr Logger) {
 
 	lgr.Info(ctx, "starting testSvc")
 
@@ -97,7 +105,7 @@ func (svc testSvc) Serve(ctx context.Context, wg *sync.WaitGroup, lgr Logger) {
 	<-ctx.Done()
 	lgr.Info(ctx, "shutting down testSvc")
 
-	// as if we're doing stuff ..
+	// as if we're finishing something up ..
 	time.Sleep(99 * time.Millisecond)
 
 	lgr.Info(ctx, "testSvc stopped")

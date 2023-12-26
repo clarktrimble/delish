@@ -14,9 +14,10 @@ import (
 
 	"github.com/clarktrimble/delish/mid"
 	"github.com/clarktrimble/delish/respond"
-	"github.com/clarktrimble/hondo"
 	"github.com/pkg/errors"
 )
+
+//go:generate moq -pkg mock -out mock/mock.go . Logger
 
 // Logger specifies a logging interface.
 type Logger interface {
@@ -57,7 +58,7 @@ func (cfg *Config) New(handler http.Handler, lgr Logger) (svr *Server) {
 func (cfg *Config) NewWithLog(ctx context.Context, handler http.Handler, lgr Logger) (svr *Server) {
 
 	handler = mid.LogResponse(lgr, handler)
-	handler = mid.LogRequest(lgr, hondo.Rand, handler)
+	handler = mid.LogRequest(lgr, handler)
 	handler = mid.ReplaceCtx(ctx, handler)
 
 	svr = cfg.New(handler, lgr)
@@ -114,9 +115,12 @@ func (svr *Server) wait(ctx context.Context, httpServer *http.Server, wg *sync.W
 	defer wg.Done()
 
 	<-ctx.Done()
-	svr.Logger.Info(ctx, "shutting down http service ..")
+	svr.Logger.Info(ctx, "shutting down http service")
 
-	err := httpServer.Shutdown(ctx)
+	sdCtx, sdCancel := context.WithTimeout(context.Background(), 12*svr.Timeout)
+	defer sdCancel()
+
+	err := httpServer.Shutdown(sdCtx)
 	if err != nil {
 		err = errors.Wrapf(err, "failed to shutdown on: %s", svr.Addr)
 		svr.Logger.Error(ctx, "shutdown failed", err)

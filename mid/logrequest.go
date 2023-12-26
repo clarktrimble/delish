@@ -4,23 +4,25 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/clarktrimble/hondo"
 )
 
-// Todo: provide one stop calling LogRequest n Response n ReplaceCtx, perhaps Use ??
+const (
+	idLen int = 7
+)
 
 var (
 	RedactHeaders = map[string]bool{}
 )
 
-// LogRequest is a middleware which logs the request
-func LogRequest(logger Logger, rand func(int) string, next http.Handler) http.HandlerFunc {
-
-	// Todo: just call hondo.Rand here rather than pass in func, yeah?
+// LogRequest is a middleware which logs the request.
+func LogRequest(logger Logger, next http.Handler) http.HandlerFunc {
 
 	return func(writer http.ResponseWriter, request *http.Request) {
 
 		ctx := request.Context()
-		ctx = logger.WithFields(ctx, "request_id", rand(7))
+		ctx = logger.WithFields(ctx, "request_id", hondo.Rand(idLen))
 		request = request.WithContext(ctx)
 
 		body, err := requestBody(request)

@@ -52,7 +52,7 @@ func Wait(ctx context.Context) {
 	signal.Notify(sigChan, stop...)
 	<-sigChan
 
-	graceful.Logger.Info(ctx, "shutting down ..")
+	graceful.Logger.Info(ctx, "shutting down")
 
 	// when cancel is called other routines blocking on ctx.Done can proceed with shutdown
 	// wait for them to finish via the wait group ... and we're done!
