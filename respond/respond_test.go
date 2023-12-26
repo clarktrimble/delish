@@ -12,7 +12,6 @@ import (
 
 	"github.com/clarktrimble/delish/mock"
 	. "github.com/clarktrimble/delish/respond"
-	"github.com/clarktrimble/delish/test/help"
 )
 
 func TestRespond(t *testing.T) {
@@ -169,7 +168,7 @@ var _ = Describe("Respond(ing)", func() {
 		When("write fails", func() {
 			BeforeEach(func() {
 				data = []byte(`{"ima":"pc"}`)
-				rp.Writer = &help.ErrorResponder{}
+				rp.Writer = &errorResponder{}
 			})
 
 			It("logs the error", func() {
@@ -182,3 +181,15 @@ var _ = Describe("Respond(ing)", func() {
 
 	})
 })
+
+type errorResponder struct{}
+
+func (er *errorResponder) Header() (hdr http.Header) {
+	return http.Header{}
+}
+
+func (er *errorResponder) Write(body []byte) (count int, err error) {
+	return 0, fmt.Errorf("oops")
+}
+
+func (er *errorResponder) WriteHeader(status int) {}

@@ -2,6 +2,7 @@ package buffered_test
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -11,7 +12,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	. "github.com/clarktrimble/delish/buffered"
-	"github.com/clarktrimble/delish/test/help"
 )
 
 func TestBuffered(t *testing.T) {
@@ -160,7 +160,7 @@ var _ = Describe("Buf", func() {
 		When("write fails", func() {
 			BeforeEach(func() {
 				buf = &Buffered{
-					Writer: &help.ErrorResponder{},
+					Writer: &errorResponder{},
 				}
 			})
 
@@ -172,3 +172,15 @@ var _ = Describe("Buf", func() {
 	})
 
 })
+
+type errorResponder struct{}
+
+func (er *errorResponder) Header() (hdr http.Header) {
+	return http.Header{}
+}
+
+func (er *errorResponder) Write(body []byte) (count int, err error) {
+	return 0, fmt.Errorf("oops")
+}
+
+func (er *errorResponder) WriteHeader(status int) {}
