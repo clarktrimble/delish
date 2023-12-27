@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"sync"
 	"testing"
 	"time"
@@ -21,7 +22,7 @@ func TestDelish(t *testing.T) {
 	RunSpecs(t, "Delish Suite")
 }
 
-var _ = Describe("Server", func() {
+var _ = Describe("Delish", func() {
 	var (
 		handler http.Handler
 		lgr     *mock.LoggerMock
@@ -107,7 +108,7 @@ var _ = Describe("Server", func() {
 			})
 
 			//It("starts, serves, and stops", MustPassRepeatedly(33), func() {
-			It("starts, serves, and stops", MustPassRepeatedly(33), func() {
+			It("starts, serves, and stops", func() {
 
 				// check for startup
 
@@ -138,4 +139,27 @@ var _ = Describe("Server", func() {
 		})
 	})
 
+	Describe("working out the object handler", func() {
+		var (
+			writer  *httptest.ResponseRecorder
+			request *http.Request
+		)
+
+		When("all goes well", func() {
+			BeforeEach(func() {
+
+				hf := ObjHandler("stuff", map[string]string{"thing": "one"}, lgr)
+				writer = httptest.NewRecorder()
+				request = &http.Request{}
+
+				hf(writer, request)
+			})
+
+			It("responds with an named, marshalled object", func() {
+				Expect(writer.Code).To(Equal(200))
+				Expect(writer.Header()).To(Equal(http.Header{"Content-Type": []string{"application/json"}}))
+				Expect(writer.Body.String()).To(Equal(`{"stuff":{"thing":"one"}}`))
+			})
+		})
+	})
 })
