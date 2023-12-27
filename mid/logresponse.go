@@ -22,13 +22,18 @@ func LogResponse(lgr Logger, next http.Handler) http.HandlerFunc {
 
 		next.ServeHTTP(buf, request)
 
-		lgr.Info(ctx, "sending response",
+		fields := []any{
 			"status", buf.Status,
 			"headers", buf.Header(),
-			"body", buf.Body(),
 			"elapsed", time.Since(start),
-		)
-		// Todo: opt-out body logging
+		}
+
+		if !SkipBody {
+			fields = append(fields, "body")
+			fields = append(fields, buf.Body())
+		}
+
+		lgr.Info(ctx, "sending response", fields...)
 
 		err := buf.WriteResponse()
 		if err != nil {

@@ -3,6 +3,7 @@ package mid_test
 import (
 	"bytes"
 	"context"
+	"io"
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
@@ -16,13 +17,16 @@ import (
 
 var _ = Describe("LogRequest", func() {
 	var (
-		handler http.Handler
-		request *http.Request
-		lgr     *mock.LoggerMock
+		handler  http.Handler
+		request  *http.Request
+		received *http.Request
+		lgr      *mock.LoggerMock
 	)
 
 	BeforeEach(func() {
-		handler = http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {})
+		handler = http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+			received = request
+		})
 
 		lgr = &mock.LoggerMock{
 			InfoFunc: func(ctx context.Context, msg string, kv ...any) {},
@@ -30,6 +34,9 @@ var _ = Describe("LogRequest", func() {
 				return ctx
 			},
 		}
+
+		RedactHeaders = map[string]bool{}
+		SkipBody = false
 
 		rand.Seed(1) //nolint:staticcheck // unit request_id
 	})
@@ -58,10 +65,10 @@ var _ = Describe("LogRequest", func() {
 						"method", "",
 						"path", "",
 						"query", map[string][]string(nil),
-						"body", "",
 						"remote_ip", "",
 						"remote_port", "",
 						"headers", http.Header(nil),
+						"body", "",
 					}))
 
 					wfc := lgr.WithFieldsCalls()
@@ -80,7 +87,7 @@ var _ = Describe("LogRequest", func() {
 					request.Header.Set("content-type", "application/json")
 				})
 
-				It("logs fields related to the request", func() {
+				It("logs fields related to the request and body is intact", func() {
 					ic := lgr.InfoCalls()
 					Expect(ic).To(HaveLen(1))
 					Expect(ic[0].Msg).To(Equal("received request"))
@@ -88,11 +95,16 @@ var _ = Describe("LogRequest", func() {
 						"method", "POST",
 						"path", "/latvia/riga",
 						"query", map[string][]string{},
-						"body", `{"ima":"pc"}`,
 						"remote_ip", "10.11.12.13",
 						"remote_port", "34562",
 						"headers", http.Header{"Content-Type": []string{"application/json"}},
+						"body", `{"ima":"pc"}`,
 					}))
+
+					body, err := io.ReadAll(received.Body)
+					received.Body.Close()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(string(body)).To(Equal(`{"ima":"pc"}`))
 				})
 
 				When("and a header is flagged for redaction", func() {
@@ -109,14 +121,41 @@ var _ = Describe("LogRequest", func() {
 							"method", "POST",
 							"path", "/latvia/riga",
 							"query", map[string][]string{},
-							"body", `{"ima":"pc"}`,
 							"remote_ip", "10.11.12.13",
 							"remote_port", "34562",
 							"headers", http.Header{
 								"Content-Type":          []string{"application/json"},
 								"X-Authorization-Token": []string{"--redacted--"},
 							},
+							"body", `{"ima":"pc"}`,
 						}))
+					})
+				})
+
+				When("and body skipping is enabled", func() {
+					BeforeEach(func() {
+						SkipBody = true
+					})
+
+					It("does not log the body and body is intact", func() {
+						ic := lgr.InfoCalls()
+						Expect(ic).To(HaveLen(1))
+						Expect(ic[0].Msg).To(Equal("received request"))
+						Expect(ic[0].Kv).To(HaveExactElements([]any{
+							"method", "POST",
+							"path", "/latvia/riga",
+							"query", map[string][]string{},
+							"remote_ip", "10.11.12.13",
+							"remote_port", "34562",
+							"headers", http.Header{
+								"Content-Type": []string{"application/json"},
+							},
+						}))
+
+						body, err := io.ReadAll(received.Body)
+						received.Body.Close()
+						Expect(err).ToNot(HaveOccurred())
+						Expect(string(body)).To(Equal(`{"ima":"pc"}`))
 					})
 				})
 

@@ -14,20 +14,26 @@ import (
 
 var _ = Describe("LogResponse", func() {
 	var (
-		handler http.Handler
-		lgr     *mock.LoggerMock
+		handler  http.Handler
+		recorder *httptest.ResponseRecorder
+		lgr      *mock.LoggerMock
 	)
 
 	BeforeEach(func() {
 		handler = jsonHandler(201, `{"ima":"pc"}`)
+		recorder = httptest.NewRecorder()
+
 		lgr = &mock.LoggerMock{
 			InfoFunc: func(ctx context.Context, msg string, kv ...any) {},
 		}
+
+		SkipBody = false
 	})
 
 	Describe("logging the response", func() {
+
 		JustBeforeEach(func() {
-			handler.ServeHTTP(httptest.NewRecorder(), &http.Request{})
+			handler.ServeHTTP(recorder, &http.Request{})
 		})
 
 		When("the hander is wrapped with the middleware", func() {
@@ -35,7 +41,7 @@ var _ = Describe("LogResponse", func() {
 				handler = LogResponse(lgr, handler)
 			})
 
-			It("logs fields related to the response", func() {
+			It("logs fields related to the response and body is intact", func() {
 				ic := lgr.InfoCalls()
 				Expect(ic).To(HaveLen(1))
 				Expect(ic[0].Msg).To(Equal("sending response"))
@@ -45,6 +51,27 @@ var _ = Describe("LogResponse", func() {
 					"headers": http.Header{"Content-Type": []string{"application/json"}},
 					"status":  201,
 				}))
+
+				Expect(recorder.Body.String()).To(Equal(`{"ima":"pc"}`))
+			})
+
+			When("and skip body is enabled", func() {
+				BeforeEach(func() {
+					SkipBody = true
+				})
+
+				It("does not log body and body is intact", func() {
+					ic := lgr.InfoCalls()
+					Expect(ic).To(HaveLen(1))
+					Expect(ic[0].Msg).To(Equal("sending response"))
+					Expect(mapLog(ic[0].Kv)).To(Equal(map[string]any{
+						"elapsed": "replaced-for-unit",
+						"headers": http.Header{"Content-Type": []string{"application/json"}},
+						"status":  201,
+					}))
+
+					Expect(recorder.Body.String()).To(Equal(`{"ima":"pc"}`))
+				})
 			})
 		})
 
