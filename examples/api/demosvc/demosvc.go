@@ -9,13 +9,18 @@ import (
 
 // Todo: example svc here is odd, make regular with New, replace Server with Logger, etc
 
+// Router specifies an http router.
+type Router interface {
+	HandleFunc(pattern string, handler http.HandlerFunc)
+}
+
 func AddRoute(svr *delish.Server, rtr Router) (svc *demoSvc) {
 
 	svc = &demoSvc{
 		Server: svr,
 	}
 
-	rtr.Set("GET", "/brunch", svc.getBrunch)
+	rtr.HandleFunc("GET /brunch", svc.getBrunch)
 	return
 }
 

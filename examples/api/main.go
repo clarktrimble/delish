@@ -9,10 +9,10 @@ import (
 	"github.com/clarktrimble/hondo"
 
 	"github.com/clarktrimble/delish/graceful"
+	"github.com/clarktrimble/delish/minroute"
 
 	"github.com/clarktrimble/delish/examples/api/demosvc"
 	"github.com/clarktrimble/delish/examples/api/minlog"
-	"github.com/clarktrimble/delish/examples/api/minroute"
 )
 
 var (
@@ -48,13 +48,13 @@ func main() {
 
 	// create router/handler, and server
 
-	rtr := minroute.New(lgr)
+	rtr := minroute.New(ctx, lgr)
 	svr := cfg.Server.NewWithLog(ctx, rtr, lgr)
 
 	// register route directly
 	// or via service layer
 
-	rtr.Set("GET", "/config", delish.ObjHandler("config", cfg, lgr))
+	rtr.HandleFunc("GET /config", delish.ObjHandler("config", cfg, lgr))
 	demosvc.AddRoute(svr, rtr)
 
 	// delicious!
