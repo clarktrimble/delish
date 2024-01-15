@@ -32,36 +32,39 @@ type Logger interface {
 
 The logging interface is meant to support structured, contextual logging.
 Through it `delish` logs startup/shutdown, handles errors, and optionally request and response.
-The example api includes `minlog`, aiming for a modicum of readibility in support of development.
+The example api includes `minlog`, aiming for a modicum of readability in support of development.
 See https://github.com/clarktrimble/sabot for json output, truncation and more.
 
 ## Example
 
 ```go
-	// setup logger and initialize graceful
+  // setup logger and initialize graceful
 
-	lgr := &minlog.MinLog{}
-	ctx := lgr.WithFields(context.Background(), "run_id", hondo.Rand(7))
+  lgr := &minlog.MinLog{}
+  ctx := lgr.WithFields(context.Background(),
+    "app_id", "api_demo",
+    "run_id", hondo.Rand(7),
+  )
 
-	ctx = graceful.Initialize(ctx, &wg, lgr)
+  ctx = graceful.Initialize(ctx, &wg, lgr, "config", cfg)
 
-	// setup router
+  // setup router
 
-	rtr := minroute.New(ctx, lgr)
-	rtr.HandleFunc("GET /config", delish.ObjHandler("config", cfg, lgr))
+  rtr := minroute.New(ctx, lgr)
+  rtr.HandleFunc("GET /config", delish.ObjHandler("config", cfg, lgr))
 
-	// start worker
+  // start demo service
 
-	svc := cfg.Service.New(rtr, lgr)
-	svc.Start(ctx, &wg)
+  svc := cfg.Service.New(rtr, lgr)
+  svc.Start(ctx, &wg)
 
-	// start api server and wait for interrupt
+  // start api server and wait for interrupt
 
-	svr := cfg.Server.NewWithLog(ctx, rtr, lgr)
-	svr.Start(ctx, &wg)
-	graceful.Wait(ctx)
+  svr := cfg.Server.NewWithLog(ctx, rtr, lgr)
+  svr.Start(ctx, &wg)
+  graceful.Wait(ctx)
 
-	// delicious!
+  // delicious!
 ```
 
 ## Test and Build
