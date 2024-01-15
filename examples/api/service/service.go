@@ -51,7 +51,7 @@ func (svc *service) Start(ctx context.Context, wg *sync.WaitGroup) {
 type logger interface {
 	Info(ctx context.Context, msg string, kv ...any)
 	Error(ctx context.Context, msg string, err error, kv ...any)
-	WithFields(ctx context.Context, kv ...interface{}) context.Context
+	WithFields(ctx context.Context, kv ...any) context.Context
 }
 
 type router interface {

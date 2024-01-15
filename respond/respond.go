@@ -10,15 +10,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Logger specifies a logging interface.
-type Logger interface {
-	Error(ctx context.Context, msg string, err error, kv ...any)
-}
-
 // Respond provides convinience methods when responding to a json request.
 type Respond struct {
 	Writer http.ResponseWriter
-	Logger Logger
+	Logger logger
 }
 
 // Ok responds with 200 ok.
@@ -75,6 +70,10 @@ func (rp *Respond) Write(ctx context.Context, data []byte) {
 }
 
 // unexported
+
+type logger interface {
+	Error(ctx context.Context, msg string, err error, kv ...any)
+}
 
 func (rp *Respond) header(code int) {
 

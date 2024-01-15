@@ -1,4 +1,4 @@
-package buffered_test
+package buffered
 
 import (
 	"bytes"
@@ -10,8 +10,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	. "github.com/clarktrimble/delish/buffered"
 )
 
 func TestBuffered(t *testing.T) {

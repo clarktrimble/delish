@@ -11,6 +11,8 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+//go:generate moq -out mock_test.go . logger
+
 func TestMinRoute(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "MinRoute Suite")
@@ -19,14 +21,14 @@ func TestMinRoute(t *testing.T) {
 var _ = Describe("MinRoute", func() {
 	var (
 		ctx context.Context
-		lgr *LoggerMock
+		lgr *loggerMock
 		rtr *MinRoute
 	)
 
 	BeforeEach(func() {
 		ctx = context.Background()
 
-		lgr = &LoggerMock{
+		lgr = &loggerMock{
 			ErrorFunc: func(ctx context.Context, msg string, err error, kv ...any) {},
 		}
 

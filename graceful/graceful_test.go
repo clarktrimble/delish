@@ -1,7 +1,5 @@
 package graceful
 
-// Note: sneaking into package here for test of "singleton"
-
 import (
 	"context"
 	"os"
@@ -12,9 +10,9 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	"github.com/clarktrimble/delish/mock"
 )
+
+//go:generate moq -out mock_test.go . logger
 
 func TestMid(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -24,12 +22,12 @@ func TestMid(t *testing.T) {
 var _ = Describe("Graceful", func() {
 	var (
 		ctx context.Context
-		lgr *mock.LoggerMock
+		lgr *loggerMock
 		wg  sync.WaitGroup
 	)
 
 	BeforeEach(func() {
-		lgr = &mock.LoggerMock{
+		lgr = &loggerMock{
 			InfoFunc: func(ctx context.Context, msg string, kv ...any) {},
 		}
 
@@ -99,7 +97,7 @@ func (svc *testSvc) Started() bool {
 	return svc.started
 }
 
-func (svc *testSvc) Start(ctx context.Context, wg *sync.WaitGroup, lgr Logger) {
+func (svc *testSvc) Start(ctx context.Context, wg *sync.WaitGroup, lgr logger) {
 
 	lgr.Info(ctx, "starting testSvc")
 

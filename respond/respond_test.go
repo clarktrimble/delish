@@ -1,4 +1,4 @@
-package respond_test
+package respond
 
 import (
 	"context"
@@ -9,10 +9,9 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	"github.com/clarktrimble/delish/mock"
-	. "github.com/clarktrimble/delish/respond"
 )
+
+//go:generate moq -out mock_test.go . logger
 
 func TestRespond(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -23,7 +22,7 @@ var _ = Describe("Respond(ing)", func() {
 	var (
 		ctx    context.Context
 		writer *httptest.ResponseRecorder
-		lgr    *mock.LoggerMock
+		lgr    *loggerMock
 		rp     *Respond
 	)
 
@@ -31,7 +30,7 @@ var _ = Describe("Respond(ing)", func() {
 		ctx = context.Background()
 		writer = httptest.NewRecorder()
 
-		lgr = &mock.LoggerMock{
+		lgr = &loggerMock{
 			ErrorFunc: func(ctx context.Context, msg string, err error, kv ...any) {},
 		}
 

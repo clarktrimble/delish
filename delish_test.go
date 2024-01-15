@@ -1,4 +1,4 @@
-package delish_test
+package delish
 
 import (
 	"context"
@@ -12,10 +12,9 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	. "github.com/clarktrimble/delish"
-	"github.com/clarktrimble/delish/mock"
 )
+
+//go:generate moq -out mock_test.go . logger
 
 func TestDelish(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -25,13 +24,13 @@ func TestDelish(t *testing.T) {
 var _ = Describe("Delish", func() {
 	var (
 		handler http.Handler
-		lgr     *mock.LoggerMock
+		lgr     *loggerMock
 		svr     *Server
 		cfg     *Config
 	)
 
 	BeforeEach(func() {
-		lgr = &mock.LoggerMock{
+		lgr = &loggerMock{
 			InfoFunc:  func(ctx context.Context, msg string, kv ...any) {},
 			ErrorFunc: func(ctx context.Context, msg string, err error, kv ...any) {},
 		}

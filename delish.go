@@ -1,12 +1,8 @@
-// Package delish starts and stops an http server
-// coordinating with other services
-// with logging and timeouts
-// and provides a json responder
+// Package delish starts and stops an http server in coordination with sibling services.
 package delish
 
 import (
 	"context"
-	errs "errors"
 	"fmt"
 	"net/http"
 	"sync"
@@ -16,15 +12,6 @@ import (
 	"github.com/clarktrimble/delish/respond"
 	"github.com/pkg/errors"
 )
-
-//go:generate moq -pkg mock -out mock/mock.go . Logger
-
-// Logger specifies a logging interface.
-type Logger interface {
-	Info(ctx context.Context, msg string, kv ...any)
-	Error(ctx context.Context, msg string, err error, kv ...any)
-	WithFields(ctx context.Context, kv ...any) context.Context
-}
 
 // Config is the server's configuration
 type Config struct {
@@ -37,12 +24,12 @@ type Config struct {
 type Server struct {
 	Addr    string
 	Handler http.Handler
-	Logger  Logger
+	Logger  logger
 	Timeout time.Duration
 }
 
 // New creates a server from config
-func (cfg *Config) New(handler http.Handler, lgr Logger) (svr *Server) {
+func (cfg *Config) New(handler http.Handler, lgr logger) (svr *Server) {
 
 	svr = &Server{
 		Addr:    fmt.Sprintf("%s:%d", cfg.Host, cfg.Port),
@@ -55,7 +42,7 @@ func (cfg *Config) New(handler http.Handler, lgr Logger) (svr *Server) {
 }
 
 // NewWithLog is a convinience creating a server wrapped with logging from config.
-func (cfg *Config) NewWithLog(ctx context.Context, handler http.Handler, lgr Logger) (svr *Server) {
+func (cfg *Config) NewWithLog(ctx context.Context, handler http.Handler, lgr logger) (svr *Server) {
 
 	handler = mid.LogResponse(lgr, handler)
 	handler = mid.LogRequest(lgr, handler)
@@ -83,7 +70,7 @@ func (svr *Server) Start(ctx context.Context, wg *sync.WaitGroup) {
 }
 
 // ObjHandler is a convinience method that responds with a marshalled named object
-func ObjHandler(name string, obj any, lgr Logger) http.HandlerFunc {
+func ObjHandler(name string, obj any, lgr logger) http.HandlerFunc {
 
 	return func(writer http.ResponseWriter, request *http.Request) {
 
@@ -98,12 +85,18 @@ func ObjHandler(name string, obj any, lgr Logger) http.HandlerFunc {
 
 // unexported
 
+type logger interface {
+	Info(ctx context.Context, msg string, kv ...any)
+	Error(ctx context.Context, msg string, err error, kv ...any)
+	WithFields(ctx context.Context, kv ...any) context.Context
+}
+
 func (svr *Server) work(ctx context.Context, httpServer *http.Server) {
 
 	svr.Logger.Info(ctx, "listening", "address", svr.Addr)
 
 	err := httpServer.ListenAndServe()
-	if !errs.Is(err, http.ErrServerClosed) {
+	if !errors.Is(err, http.ErrServerClosed) {
 		err = errors.Wrapf(err, "failed to listen on: %s", svr.Addr)
 		svr.Logger.Error(ctx, "service failed", err)
 	}

@@ -9,19 +9,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-//go:generate moq -out mock_test.go . Logger
-
-// Logger specifies a logging interface.
-type Logger interface {
-	Info(ctx context.Context, msg string, kv ...any)
-	Error(ctx context.Context, msg string, err error, kv ...any)
-	WithFields(ctx context.Context, kv ...any) context.Context
-}
-
 // MinRoute maps http methods and paths to handlers
 type MinRoute struct {
 	Ctx    context.Context
-	Logger Logger
+	Logger logger
 	Routes map[string]map[string]http.HandlerFunc
 }
 
@@ -30,7 +21,7 @@ type MinRoute struct {
 // And stashes a copy of context, which is usually a no-no.
 // But, breaking the rules here, as it allows for sensisibly contextual
 // error logging when something goes wrong setting a route.
-func New(ctx context.Context, lgr Logger) (rtr *MinRoute) {
+func New(ctx context.Context, lgr logger) (rtr *MinRoute) {
 
 	rtr = &MinRoute{
 		Ctx:    ctx,
@@ -93,7 +84,13 @@ func (rtr *MinRoute) HandleFunc(pattern string, handler http.HandlerFunc) {
 
 // unexported
 
-func notFound(ctx context.Context, writer http.ResponseWriter, lgr Logger) {
+type logger interface {
+	Info(ctx context.Context, msg string, kv ...any)
+	Error(ctx context.Context, msg string, err error, kv ...any)
+	WithFields(ctx context.Context, kv ...any) context.Context
+}
+
+func notFound(ctx context.Context, writer http.ResponseWriter, lgr logger) {
 
 	rp := &respond.Respond{
 		Writer: writer,
