@@ -1,4 +1,4 @@
-package mid_test
+package mid
 
 import (
 	"context"
@@ -7,23 +7,20 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	. "github.com/clarktrimble/delish/mid"
-	"github.com/clarktrimble/delish/mock"
 )
 
 var _ = Describe("LogResponse", func() {
 	var (
 		handler  http.Handler
 		recorder *httptest.ResponseRecorder
-		lgr      *mock.LoggerMock
+		lgr      *loggerMock
 	)
 
 	BeforeEach(func() {
 		handler = jsonHandler(201, `{"ima":"pc"}`)
 		recorder = httptest.NewRecorder()
 
-		lgr = &mock.LoggerMock{
+		lgr = &loggerMock{
 			InfoFunc: func(ctx context.Context, msg string, kv ...any) {},
 		}
 

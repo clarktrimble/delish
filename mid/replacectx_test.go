@@ -1,23 +1,18 @@
-package mid_test
+package mid
 
 import (
 	"context"
 	"net/http"
 	"net/http/httptest"
-	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	. "github.com/clarktrimble/delish/mid"
 )
 
-func TestMid(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Mid Suite")
-}
-
 var _ = Describe("ReplaceCtx", func() {
+
+	type key struct{}
+
 	var (
 		ctx     context.Context
 		handler http.Handler
@@ -56,5 +51,3 @@ var _ = Describe("ReplaceCtx", func() {
 
 	})
 })
-
-type key struct{}

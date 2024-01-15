@@ -21,12 +21,12 @@ var (
 )
 
 // LogRequest is a middleware which logs the request.
-func LogRequest(logger Logger, next http.Handler) http.HandlerFunc {
+func LogRequest(lgr logger, next http.Handler) http.HandlerFunc {
 
 	return func(writer http.ResponseWriter, request *http.Request) {
 
 		ctx := request.Context()
-		ctx = logger.WithFields(ctx, "request_id", hondo.Rand(idLen))
+		ctx = lgr.WithFields(ctx, "request_id", hondo.Rand(idLen))
 		request = request.WithContext(ctx)
 
 		ip, port := ipPort(request.RemoteAddr)
@@ -44,14 +44,14 @@ func LogRequest(logger Logger, next http.Handler) http.HandlerFunc {
 		if !SkipBody {
 			body, err := requestBody(request)
 			if err != nil {
-				logger.Error(ctx, "request logger failed to get body", err)
+				lgr.Error(ctx, "request logger failed to get body", err)
 			} else {
 				fields = append(fields, "body")
 				fields = append(fields, string(body))
 			}
 		}
 
-		logger.Info(ctx, "received request", fields...)
+		lgr.Info(ctx, "received request", fields...)
 		next.ServeHTTP(writer, request)
 	}
 }

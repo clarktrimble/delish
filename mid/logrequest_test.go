@@ -1,4 +1,4 @@
-package mid_test
+package mid
 
 import (
 	"bytes"
@@ -10,9 +10,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	. "github.com/clarktrimble/delish/mid"
-	"github.com/clarktrimble/delish/mock"
 )
 
 var _ = Describe("LogRequest", func() {
@@ -20,7 +17,7 @@ var _ = Describe("LogRequest", func() {
 		handler  http.Handler
 		request  *http.Request
 		received *http.Request
-		lgr      *mock.LoggerMock
+		lgr      *loggerMock
 	)
 
 	BeforeEach(func() {
@@ -28,7 +25,7 @@ var _ = Describe("LogRequest", func() {
 			received = request
 		})
 
-		lgr = &mock.LoggerMock{
+		lgr = &loggerMock{
 			InfoFunc: func(ctx context.Context, msg string, kv ...any) {},
 			WithFieldsFunc: func(ctx context.Context, kv ...any) context.Context {
 				return ctx

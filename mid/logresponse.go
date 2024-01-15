@@ -9,7 +9,7 @@ import (
 )
 
 // LogResponse is a middleware which logs the response
-func LogResponse(lgr Logger, next http.Handler) http.HandlerFunc {
+func LogResponse(lgr logger, next http.Handler) http.HandlerFunc {
 
 	return func(writer http.ResponseWriter, request *http.Request) {
 
