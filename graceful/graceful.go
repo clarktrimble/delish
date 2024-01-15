@@ -10,8 +10,6 @@ import (
 	"syscall"
 )
 
-// Todo: would launch be a better home?
-
 var (
 	stop     []os.Signal = []os.Signal{syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, os.Interrupt}
 	graceful *Graceful
@@ -30,8 +28,14 @@ type Graceful struct {
 }
 
 // Initialize sets up the one and only graceful; singelton!
-func Initialize(ctx context.Context, wg *sync.WaitGroup, lgr Logger) context.Context {
+//
+// A CancelFunc is added to the copied context.
+// WaitGroup is stashed for use in Wait below.
+// Logger is used to log startup and shutdown.
+// kv key-value pairs are logged with startup message.
+func Initialize(ctx context.Context, wg *sync.WaitGroup, lgr Logger, kv ...any) context.Context {
 
+	lgr.Info(ctx, "starting up", kv...)
 	ctx, cancel := context.WithCancel(ctx)
 
 	graceful = &Graceful{

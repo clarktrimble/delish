@@ -11,8 +11,8 @@ import (
 	"github.com/clarktrimble/delish/graceful"
 	"github.com/clarktrimble/delish/minroute"
 
-	"github.com/clarktrimble/delish/examples/api/demosvc"
 	"github.com/clarktrimble/delish/examples/api/minlog"
+	"github.com/clarktrimble/delish/examples/api/service"
 )
 
 var (
@@ -21,15 +21,15 @@ var (
 )
 
 type Config struct {
-	Version string         `json:"version" ignored:"true"`
-	Server  *delish.Config `json:"server"`
+	Version string          `json:"version" ignored:"true"`
+	Server  *delish.Config  `json:"server"`
+	Service *service.Config `json:"service"`
 }
-
-// Todo: demo another goroutine
 
 func main() {
 
-	// usually load config with envconfig, but literal for demo
+	// using a literal config to avoid dep in example
+	// see github.com/clarktrimble/launch for envconfig convenience
 
 	cfg := &Config{
 		Version: version,
@@ -37,28 +37,36 @@ func main() {
 			Port:    8088,
 			Timeout: 10 * time.Second,
 		},
+		Service: &service.Config{
+			Interval: 5 * time.Second,
+		},
 	}
 
-	// create logger and initialize graceful
+	// setup logger and initialize graceful
 
 	lgr := &minlog.MinLog{}
-	ctx := lgr.WithFields(context.Background(), "run_id", hondo.Rand(7))
+	ctx := lgr.WithFields(context.Background(),
+		"app_id", "api_demo",
+		"run_id", hondo.Rand(7),
+	)
 
-	ctx = graceful.Initialize(ctx, &wg, lgr)
+	ctx = graceful.Initialize(ctx, &wg, lgr, "config", cfg)
 
-	// create router/handler, and server
+	// setup router
 
 	rtr := minroute.New(ctx, lgr)
-	svr := cfg.Server.NewWithLog(ctx, rtr, lgr)
-
-	// register route directly
-	// or via service layer
-
 	rtr.HandleFunc("GET /config", delish.ObjHandler("config", cfg, lgr))
-	demosvc.AddRoute(svr, rtr)
 
-	// delicious!
+	// start demo service
 
+	svc := cfg.Service.New(rtr, lgr)
+	svc.Start(ctx, &wg)
+
+	// start api server and wait for interrupt
+
+	svr := cfg.Server.NewWithLog(ctx, rtr, lgr)
 	svr.Start(ctx, &wg)
 	graceful.Wait(ctx)
+
+	// delicious!
 }

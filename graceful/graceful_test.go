@@ -29,26 +29,21 @@ var _ = Describe("Graceful", func() {
 	)
 
 	BeforeEach(func() {
-		ctx = context.Background()
 		lgr = &mock.LoggerMock{
 			InfoFunc: func(ctx context.Context, msg string, kv ...any) {},
 		}
+
+		ctx = Initialize(context.Background(), &wg, lgr)
 	})
 
 	Describe("initializing the package", func() {
 
-		JustBeforeEach(func() {
-			ctx = Initialize(ctx, &wg, lgr)
-		})
-
 		When("all is well", func() {
-
 			It("populates the object", func() {
 				Expect(graceful.WaitGroup).ToNot(BeNil())
 				Expect(graceful.Cancel).ToNot(BeNil())
 				Expect(graceful.Logger).ToNot(BeNil())
 			})
-
 		})
 	})
 
@@ -59,15 +54,13 @@ var _ = Describe("Graceful", func() {
 
 				// init graceful and start test service
 
-				ctxCancel := Initialize(context.Background(), &wg, lgr)
-				go testSvc{}.Start(ctxCancel, &wg, lgr)
+				svc := &testSvc{}
+				go svc.Start(ctx, &wg, lgr)
 
 				// once service is started, signal shutdown
 
 				go func() {
-					ic := lgr.InfoCalls
-					Eventually(ic).Should(HaveLen(1))
-					Expect(ic()[0].Msg).To(Equal("starting testSvc"))
+					Eventually(svc.Started).Should(BeTrue())
 
 					proc, err := os.FindProcess(os.Getpid())
 					Expect(err).ToNot(HaveOccurred())
@@ -82,25 +75,40 @@ var _ = Describe("Graceful", func() {
 
 			It("starts, blocks, cancels, waits, and stops", func() {
 				ic := lgr.InfoCalls
-				Eventually(ic).Should(HaveLen(5))
-				Expect(ic()[1].Msg).To(Equal("shutting down"))
-				Expect(ic()[2].Msg).To(Equal("shutting down testSvc")) // <- triggered by cancel
-				Expect(ic()[3].Msg).To(Equal("testSvc stopped"))       //
-				Expect(ic()[4].Msg).To(Equal("stopped"))               // <- waitgroup'ed for this one!
+				Eventually(ic).Should(HaveLen(6))
+				Expect(ic()[0].Msg).To(Equal("starting up"))
+				Expect(ic()[1].Msg).To(Equal("starting testSvc"))
+				Expect(ic()[2].Msg).To(Equal("shutting down"))
+				Expect(ic()[3].Msg).To(Equal("shutting down testSvc")) // <- triggered by cancel
+				Expect(ic()[4].Msg).To(Equal("testSvc stopped"))       //
+				Expect(ic()[5].Msg).To(Equal("stopped"))               // <- waitgroup'ed for this one!
 			})
 		})
 	})
 
 })
 
-type testSvc struct{}
+type testSvc struct {
+	started bool
+	mu      sync.RWMutex
+}
 
-func (svc testSvc) Start(ctx context.Context, wg *sync.WaitGroup, lgr Logger) {
+func (svc *testSvc) Started() bool {
+	svc.mu.RLock()
+	defer svc.mu.RUnlock()
+	return svc.started
+}
+
+func (svc *testSvc) Start(ctx context.Context, wg *sync.WaitGroup, lgr Logger) {
 
 	lgr.Info(ctx, "starting testSvc")
 
 	wg.Add(1)
 	defer wg.Done()
+
+	svc.mu.Lock()
+	svc.started = true
+	svc.mu.Unlock()
 
 	<-ctx.Done()
 	lgr.Info(ctx, "shutting down testSvc")
