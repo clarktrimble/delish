@@ -118,13 +118,13 @@ var _ = Describe("Delish", func() {
 
 				// make a request
 
-				time.Sleep(9 * time.Millisecond) // srv needs a blip to actually start
+				time.Sleep(9 * time.Millisecond) // srv needs a blip to start
 				response, err := http.Get("http://:8083")
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 
 				bdy, err := io.ReadAll(response.Body)
 				response.Body.Close()
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				Expect(bdy).To(BeEquivalentTo(`{"ima": "pc"}`))
 
 				// check for shutdown

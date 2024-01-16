@@ -146,7 +146,7 @@ var _ = Describe("Buf", func() {
 			It("writes to its response writer", func() {
 				Expect(err).ToNot(HaveOccurred())
 
-				result := buf.Writer.(*httptest.ResponseRecorder).Result()
+				result := buf.Writer.(*httptest.ResponseRecorder).Result() //nolint:forcetypeassert // unlikely to fail
 				Expect(result.StatusCode).To(Equal(201))
 
 				resultBody, err := io.ReadAll(result.Body)

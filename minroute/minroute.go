@@ -27,10 +27,10 @@ func New(ctx context.Context, lgr logger) (rtr *MinRoute) {
 		Ctx:    ctx,
 		Logger: lgr,
 		Routes: map[string]map[string]http.HandlerFunc{
-			"GET":    map[string]http.HandlerFunc{},
-			"PUT":    map[string]http.HandlerFunc{},
-			"POST":   map[string]http.HandlerFunc{},
-			"DELETE": map[string]http.HandlerFunc{},
+			"GET":    {},
+			"PUT":    {},
+			"POST":   {},
+			"DELETE": {},
 		},
 	}
 

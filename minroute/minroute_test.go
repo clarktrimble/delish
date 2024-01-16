@@ -43,10 +43,10 @@ var _ = Describe("MinRoute", func() {
 					Ctx:    ctx,
 					Logger: lgr,
 					Routes: map[string]map[string]http.HandlerFunc{
-						"GET":    map[string]http.HandlerFunc{},
-						"PUT":    map[string]http.HandlerFunc{},
-						"POST":   map[string]http.HandlerFunc{},
-						"DELETE": map[string]http.HandlerFunc{},
+						"GET":    {},
+						"PUT":    {},
+						"POST":   {},
+						"DELETE": {},
 					},
 				}))
 			})
@@ -72,7 +72,7 @@ var _ = Describe("MinRoute", func() {
 				gotPtr := fmt.Sprintf("%v", rtr.Routes["GET"]["/stuff"])
 				Expect(gotPtr).To(Equal(expectPtr))
 
-				Expect(lgr.ErrorCalls()).To(HaveLen(0))
+				Expect(lgr.ErrorCalls()).To(BeEmpty())
 			})
 		})
 

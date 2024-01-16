@@ -4,7 +4,6 @@ package respond
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/pkg/errors"
@@ -29,7 +28,7 @@ func (rp *Respond) NotOk(ctx context.Context, code int, err error) {
 	rp.header(code)
 
 	rp.Logger.Error(ctx, "returning error to client", err)
-	rp.WriteObjects(ctx, map[string]any{"error": fmt.Sprintf("%v", err)})
+	rp.WriteObjects(ctx, map[string]any{"error": err.Error()})
 }
 
 // NotFound responds with 404 not found.

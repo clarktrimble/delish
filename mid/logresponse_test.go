@@ -92,7 +92,7 @@ func mapLog(kv []any) (mapped map[string]any) {
 	mapped = map[string]any{}
 
 	for i := 0; i < len(kv); i += 2 {
-		key := kv[i].(string)
+		key := kv[i].(string) //nolint:forcetypeassert // ok w panic from scuff helper
 		val := kv[i+1]
 
 		if key == "elapsed" {
