@@ -8,10 +8,10 @@ import (
 	"github.com/clarktrimble/delish"
 	"github.com/clarktrimble/hondo"
 
+	"github.com/clarktrimble/delish/clog"
 	"github.com/clarktrimble/delish/graceful"
 	"github.com/clarktrimble/delish/minroute"
 
-	"github.com/clarktrimble/delish/examples/api/minlog"
 	"github.com/clarktrimble/delish/examples/api/service"
 )
 
@@ -44,7 +44,12 @@ func main() {
 
 	// setup logger and initialize graceful
 
-	lgr := &minlog.MinLog{}
+	//lgr := &minlog.MinLog{}
+	//lgr := &minlog.MinLog{
+	//Handler: slog.NewJSONHandler(os.Stderr, nil),
+	//Handler: slog.NewTextHandler(os.Stdout, nil),
+	//}
+	lgr := clog.New()
 	ctx := lgr.WithFields(context.Background(),
 		"app_id", "api_demo",
 		"run_id", hondo.Rand(7),
