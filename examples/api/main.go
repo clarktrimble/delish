@@ -8,7 +8,7 @@ import (
 	"github.com/clarktrimble/delish"
 	"github.com/clarktrimble/hondo"
 
-	"github.com/clarktrimble/delish/clog"
+	"github.com/clarktrimble/delish/elog"
 	"github.com/clarktrimble/delish/graceful"
 	"github.com/clarktrimble/delish/minroute"
 
@@ -49,7 +49,7 @@ func main() {
 	//Handler: slog.NewJSONHandler(os.Stderr, nil),
 	//Handler: slog.NewTextHandler(os.Stdout, nil),
 	//}
-	lgr := clog.New()
+	lgr := elog.New()
 	ctx := lgr.WithFields(context.Background(),
 		"app_id", "api_demo",
 		"run_id", hondo.Rand(7),

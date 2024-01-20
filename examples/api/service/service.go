@@ -103,7 +103,7 @@ func (svc *service) entangle(ctx context.Context) {
 		return
 	}
 
-	svc.logger.Info(ctx, "worker gonna work")
+	svc.logger.Info(ctx, "worker gonna work", "have_done", svc.count)
 
 	time.Sleep(svc.interval / 3)
 	svc.count++
