@@ -4,31 +4,27 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/clarktrimble/delish/elog/value"
 	"github.com/pkg/errors"
+
+	"github.com/clarktrimble/delish/elog/logmsg"
 )
 
 type Json struct{}
 
-func (jsn *Json) Format(ts time.Time, level, msg string, ctxFlds, flds map[string]value.Value) (data []byte, err error) {
-	//Format(ts time.Time, level, msg string, ctxFlds, flds map[string]value.Value) (data []byte, err error)
+func (jsn *Json) Format(lm logmsg.LogMsg) (data []byte, err error) {
 
-	// silently overwrite line fields from ctx and boilerplate when duplicate key
+	// overwrite duplicate "line" fields from ctx and boilerplate
 
-	for key, val := range ctxFlds {
-		flds[key] = val
+	fields := lm.Fields
+	for key, val := range lm.CtxFields {
+		fields[key] = val
 	}
 
-	// Todo: config boiler keys
-	flds["msg"] = value.NewFromString(msg)
-	flds["level"] = value.NewFromString(level)
-	flds["ts"] = value.NewFromString(ts.Format(time.RFC3339))
+	fields[jsonMsgKey] = logmsg.NewValue(lm.Msg)
+	fields[jsonLevelKey] = logmsg.NewValue(lm.Level)
+	fields[jsonTsKey] = logmsg.NewValue(lm.Ts.Format(time.RFC3339))
 
-	//for key, val := range flds {
-	//fmt.Printf(">>> %s :: %s ::\n", key, val)
-	//}
-
-	data, err = json.Marshal(flds)
+	data, err = json.Marshal(fields)
 	if err != nil {
 		err = errors.Wrap(err, "failed to marshal log message")
 		return
@@ -37,3 +33,11 @@ func (jsn *Json) Format(ts time.Time, level, msg string, ctxFlds, flds map[strin
 	data = append(data, '\n')
 	return
 }
+
+// unexported
+
+const (
+	jsonMsgKey   string = "msg"
+	jsonLevelKey string = "level"
+	jsonTsKey    string = "ts"
+)

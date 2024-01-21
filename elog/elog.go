@@ -2,7 +2,6 @@ package elog
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
@@ -10,29 +9,33 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/clarktrimble/delish/elog/format"
-	"github.com/clarktrimble/delish/elog/value"
 	"github.com/pkg/errors"
+
+	"github.com/clarktrimble/delish/elog/format"
+	"github.com/clarktrimble/delish/elog/logmsg"
 )
 
 // logger is flat as pancake
 // no groups ..
 // ctx ftw
+// performance, no (never paid for such?) is interesting though!
 
 type formatter interface {
-	Format(ts time.Time, level, msg string, ctxFlds, flds map[string]value.Value) (data []byte, err error)
+	Format(logMsg logmsg.LogMsg) ([]byte, error)
 }
 
 const (
-	logError string = "logerror"
-	trunc    string = "--truncated--"
+	trunc string = "--truncated--"
 )
 
 type MinLog struct {
 	Writer    io.Writer
 	AltWriter io.Writer
 	Formatter formatter
+	Escape    bool
 	MaxLen    int
+	InfoStr   string
+	ErrorStr  string
 }
 
 func New() *MinLog {
@@ -40,8 +43,13 @@ func New() *MinLog {
 	return &MinLog{
 		Writer:    os.Stdout,
 		AltWriter: os.Stderr,
-		//Formatter: &format.Lite{},
-		Formatter: &format.Json{},
+		Formatter: &format.Lite{},
+		InfoStr:   ">",
+		ErrorStr:  "*",
+		//Formatter: &format.Json{},
+		//Escape:    true,
+		//InfoStr:   "info",
+		//ErrorStr:  "error",
 	}
 }
 
@@ -52,28 +60,30 @@ func New() *MinLog {
 // x switch back to map[string] in ctx store (prolly need copy with map?)
 // x dont forget to look over logerror's, at min a field would be nice
 // - put error trace in it's own field
-// - look at map[string][]byte ??
+// x look at map[string][]byte ??
 // - format wants to return reader
 // - cfg lvl strings
+// - sync pool values, json.encode
+// - trunc
 
 func (ml *MinLog) Info(ctx context.Context, msg string, kv ...any) {
-	ml.log(ctx, "info", msg, kv)
+	ml.log(ctx, ml.InfoStr, msg, kv)
 }
 
 func (ml *MinLog) Error(ctx context.Context, msg string, err error, kv ...any) {
 
 	kv = append(kv, "error", fmt.Sprintf("%+v", err))
-	ml.log(ctx, "error", msg, kv)
+	ml.log(ctx, ml.ErrorStr, msg, kv)
 }
 
 func (ml *MinLog) WithFields(ctx context.Context, kv ...any) context.Context {
 
-	fields := copyFields(ctx)
-	for key, val := range toFieldsToo(kv) {
+	fields := logmsg.CopyFields(ctx)
+	for key, val := range ml.toFields(kv) {
 		fields[key] = val
 	}
 
-	ctx = context.WithValue(ctx, ctxKey{}, fields)
+	ctx = fields.Store(ctx)
 	return ctx
 }
 
@@ -81,65 +91,35 @@ func (ml *MinLog) WithFields(ctx context.Context, kv ...any) context.Context {
 
 func (ml *MinLog) log(ctx context.Context, level, msg string, kv []any) {
 
-	line, err := ml.Formatter.Format(time.Now().UTC(), level, msg, getFields(ctx), toFieldsToo(kv))
-	if err != nil {
-		line = []byte(fmt.Sprintf("%s: %+v", logError, err))
+	lm := logmsg.LogMsg{
+		Ts:        time.Now().UTC(),
+		Level:     level,
+		Msg:       msg,
+		CtxFields: logmsg.GetFields(ctx),
+		Fields:    ml.toFields(kv),
 	}
 
-	// Todo: buff or sommat pls!!
+	line, err := ml.Formatter.Format(lm)
+	if err != nil {
+		line = []byte(fmt.Sprintf("%s: %+v", logmsg.ErrorKey, err))
+	}
+
 	_, err = ml.Writer.Write(line)
-	//_, err = ml.Writer.Write(append(line, []byte("\n")...))
 	if err != nil && ml.AltWriter != nil {
 		err = errors.Wrapf(err, "failed to write")
-		_, _ = fmt.Fprintf(ml.AltWriter, "%s: %+v with line: %s\n", logError, err, line)
+		_, _ = fmt.Fprintf(ml.AltWriter, "%s: %+v with line: %s\n", logmsg.ErrorKey, err, line)
 	}
 }
 
-type ctxKey struct{}
+func (ml *MinLog) toFields(kv []any) (flds logmsg.Fields) {
 
-type fields map[string]value.Value
-
-func toFieldsToo(kv []any) (flds fields) {
-
-	// rfi: sync pool, json.encode
-
-	flds = fields{}
+	flds = logmsg.Fields{}
 	for _, attr := range argsToAttrSlice(kv) {
 
-		val := value.Value{
-			Data: []byte{},
-		}
-
-		switch attr.Value.Kind() {
-		case slog.KindString:
-			val.Data = strconv.AppendQuote(val.Data, attr.Value.String())
-			val.Quoted = true
-		case slog.KindBool:
-			val.Data = strconv.AppendBool(val.Data, attr.Value.Bool())
-		case slog.KindTime:
-			val.Data = append(val.Data, '"')
-			val.Data = attr.Value.Time().AppendFormat(val.Data, time.RFC3339)
-			val.Data = append(val.Data, '"')
-			val.Quoted = true
-		case slog.KindDuration:
-			val.Data = strconv.AppendInt(val.Data, int64(attr.Value.Duration()), 10)
-		case slog.KindInt64:
-			val.Data = strconv.AppendInt(val.Data, attr.Value.Int64(), 10)
-		case slog.KindUint64:
-			val.Data = strconv.AppendUint(val.Data, attr.Value.Uint64(), 10)
-		case slog.KindFloat64:
-			val.Data = strconv.AppendFloat(val.Data, attr.Value.Float64(), 'g', -1, 64)
-		default:
-			data, err := json.Marshal(attr.Value.Any())
-			if err != nil {
-				panic(err)
-			}
-
-			//val.Data = append(val.Data, '"')
-			//val.Data = append(val.Data, data...)
-			//val.Data = append(val.Data, '"')
-			val.Data = strconv.AppendQuote(val.Data, string(data)) // escaped, woot!
-			val.Quoted = true
+		val, err := ml.toValue(attr.Value)
+		if err != nil {
+			flds[logmsg.ErrorKey] = logmsg.NewValue(err.Error())
+			continue
 		}
 
 		flds[attr.Key] = val
@@ -148,76 +128,36 @@ func toFieldsToo(kv []any) (flds fields) {
 	return
 }
 
-func toFields(kv []any) (flds fields) {
+func (ml *MinLog) toValue(attrValue slog.Value) (val logmsg.Value, err error) {
 
-	flds = fields{}
-	for _, attr := range argsToAttrSlice(kv) {
-
-		// Todo: switch here, but furst a knap!!
-
-		val, err := toString(attr.Value)
-		if err != nil {
-			flds[logError] = value.NewFromString(err.Error())
-			continue
-		}
-
-		// fmt.Printf(">>> toString: %s\n", val)
-
-		if attr.Key == badKey {
-			flds[logError] = value.NewFromString(fmt.Sprintf("no field name found for: %s", val))
-			continue
-		}
-
-		flds[attr.Key] = value.NewFromString(val)
+	val = logmsg.Value{
+		Data: []byte{},
 	}
 
-	return
-}
-
-func toString(val slog.Value) (out string, err error) {
-
-	switch val.Kind() {
-	case slog.KindString, slog.KindBool, slog.KindDuration, slog.KindTime,
-		slog.KindInt64, slog.KindUint64, slog.KindFloat64:
-		out = val.String()
+	switch attrValue.Kind() {
+	case slog.KindString:
+		val.Data = strconv.AppendQuote(val.Data, attrValue.String())
+		val.Quoted = true
+	case slog.KindBool:
+		val.Data = strconv.AppendBool(val.Data, attrValue.Bool())
+	case slog.KindTime:
+		val.Data = append(val.Data, '"')
+		val.Data = attrValue.Time().AppendFormat(val.Data, time.RFC3339)
+		val.Data = append(val.Data, '"')
+		val.Quoted = true
+	case slog.KindDuration:
+		val.Data = strconv.AppendInt(val.Data, int64(attrValue.Duration()), 10)
+	case slog.KindInt64:
+		val.Data = strconv.AppendInt(val.Data, attrValue.Int64(), 10)
+	case slog.KindUint64:
+		val.Data = strconv.AppendUint(val.Data, attrValue.Uint64(), 10)
+	case slog.KindFloat64:
+		val.Data = strconv.AppendFloat(val.Data, attrValue.Float64(), 'g', -1, 64)
 	default:
-		var data []byte
-		data, err = json.Marshal(val.Any())
-		if err != nil {
-			err = errors.Wrapf(err, "failed to marshal value: %#v", val.Any())
-			return
-		}
-		out = string(data)
+		err = (&val).MarshalAppend(attrValue.Any(), ml.Escape)
 	}
 
 	return
-}
-
-func getFields(ctx context.Context) fields {
-
-	val := ctx.Value(ctxKey{})
-	if val == nil {
-		return fields{}
-	}
-
-	flds, ok := val.(fields)
-	if !ok {
-		return fields{
-			"logerror": value.NewFromString(fmt.Sprintf("cannot assert fields on ctxval: %#v", val)),
-		}
-	}
-
-	return flds
-}
-
-func copyFields(ctx context.Context) fields {
-
-	flds := fields{}
-	for key, val := range getFields(ctx) {
-		flds[key] = val
-	}
-
-	return flds
 }
 
 // copied from the olde slog as of go.1.21.6

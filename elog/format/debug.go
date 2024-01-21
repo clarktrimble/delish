@@ -2,30 +2,29 @@ package format
 
 import (
 	"bytes"
-	"time"
 
-	"github.com/clarktrimble/delish/elog/value"
+	"github.com/clarktrimble/delish/elog/logmsg"
 )
 
 type Debug struct{}
 
-func (lt *Debug) Format(ts time.Time, level, msg string, ctxFlds, flds map[string]value.Value) ([]byte, error) {
+func (dbg *Debug) Format(lm logmsg.LogMsg) ([]byte, error) {
 
 	//now := ts.Format("15:04:05.0000")
 
 	buf := &bytes.Buffer{}
 
 	buf.WriteString("msg: ")
-	buf.WriteString(msg)
+	buf.WriteString(lm.Msg)
 	buf.WriteString("\n")
 
-	lines(buf, "ctx ", ctxFlds)
-	lines(buf, "", flds)
+	lines(buf, "ctx ", lm.CtxFields)
+	lines(buf, "", lm.Fields)
 
 	return buf.Bytes(), nil
 }
 
-func lines(buf *bytes.Buffer, prefix string, flds map[string]value.Value) {
+func lines(buf *bytes.Buffer, prefix string, flds logmsg.Fields) {
 
 	for key, val := range flds {
 		buf.WriteString(prefix)

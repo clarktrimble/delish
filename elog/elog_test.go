@@ -7,6 +7,8 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"github.com/clarktrimble/delish/elog/logmsg"
 )
 
 func TestMinLog(t *testing.T) {
@@ -43,42 +45,66 @@ var _ = Describe("MinLog", func() {
 			})
 
 			It("should store it as a field in the returned ctx", func() {
-				Expect(getFields(wfCtx)).To(Equal(fields{
+				Expect(logmsg.GetFields(wfCtx)).To(Equal(logmsg.Fields{
 					"foo": {Data: []byte("\"bar\""), Quoted: true},
 				}))
 			})
 		})
 
-		When("adding a nice variety of fields to a ctx", func() {
+		When("adding a variety of numbers to a ctx", func() {
 			BeforeEach(func() {
 				kvs = []any{
-					"a_string", "This is a string field value.",
-					"a_bool", true,
-					"a_time", time.Time{},
-					"a_duration", time.Minute,
 					"an_integer", 34534,
 					"a_negative_integer", -888,
 					"a_large_integer", uint64(1<<64 - 1),
 					"a_float", 2.71828,
-					"a_map", map[string]any{"one": 55},
-					"a_slice", []string{"one", "two"},
-					//"an_obj", &MinLog{},
 				}
 			})
 
-			FIt("should stringify and pop them into ctx", func() {
-				Expect(getFields(wfCtx)).To(Equal(fields{
-					"a_string":           {Data: []byte("\"This is a string field value.\""), Quoted: true},
-					"a_bool":             {Data: []byte("true")},
-					"a_time":             {Data: []byte("\"0001-01-01T00:00:00Z\""), Quoted: true},
-					"a_duration":         {Data: []byte("60000000000")},
+			It("should pop them into ctx", func() {
+				Expect(logmsg.GetFields(wfCtx)).To(Equal(logmsg.Fields{
 					"an_integer":         {Data: []byte("34534")},
 					"a_negative_integer": {Data: []byte("-888")},
 					"a_large_integer":    {Data: []byte("18446744073709551615")},
 					"a_float":            {Data: []byte("2.71828")},
-					"a_map":              {Data: []byte("\"{\"one\":55}\""), Quoted: true},
-					"a_slice":            {Data: []byte("\"[\"one\",\"two\"]\""), Quoted: true},
-					//"an_obj":             "{\"Writer\":null,\"AltWriter\":null,\"Formatter\":null,\"MaxLen\":0}",
+				}))
+			})
+		})
+
+		When("adding time, duration, and bool to a ctx", func() {
+			BeforeEach(func() {
+				kvs = []any{
+					"a_time", time.Time{},
+					"a_duration", time.Minute,
+					"a_bool", true,
+				}
+			})
+
+			It("should pop them into ctx", func() {
+				Expect(logmsg.GetFields(wfCtx)).To(Equal(logmsg.Fields{
+					"a_time":     {Data: []byte(`"0001-01-01T00:00:00Z"`), Quoted: true},
+					"a_duration": {Data: []byte("60000000000")},
+					"a_bool":     {Data: []byte("true")},
+				}))
+			})
+		})
+
+		When("adding stuff to a ctx", func() {
+			BeforeEach(func() {
+				kvs = []any{
+					"a_map", map[string]any{"one": 55},
+					"a_slice", []string{"one", "two"},
+					"a_null_value", logmsg.Value{},
+					"an_obj", demo{One: "one", Two: 2},
+				}
+			})
+
+			It("should stringify and pop them into ctx", func() {
+				Expect(logmsg.GetFields(wfCtx)).To(Equal(logmsg.Fields{
+					"a_map":        {Data: []byte(`"{"one":55}"`), Quoted: true},
+					"a_slice":      {Data: []byte(`"["one","two"]"`), Quoted: true},
+					"a_null_value": {Data: []byte("null")},
+					"an_obj":       {Data: []byte(`"{"One":"one","Two":2}"`), Quoted: true},
 				}))
 			})
 		})
@@ -198,3 +224,8 @@ var _ = Describe("MinLog", func() {
 
 	})
 })
+
+type demo struct {
+	One string
+	Two int
+}

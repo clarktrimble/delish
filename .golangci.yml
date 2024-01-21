@@ -27,7 +27,7 @@ linters:
     - exhaustive # too annoying, too hard to disable with comments
     #- forbidigo
     #- funlen
-    #- gci
+    - gci
     - gochecknoglobals
     #- gocognit
     #- goconst
@@ -47,6 +47,7 @@ linters:
     #- maintidx
     - maligned # Replaced by govet
     - musttag # flaky, fires on structs which aren't JSON marshalled
+    - nakedret # pct
     #- nilnil
     - nlreturn
     #- noctx
@@ -56,7 +57,7 @@ linters:
     #- prealloc
     - scopelint # Replaced by exportloopref.
     - structcheck # replaced with unused
-    #- tagliatelle
+    - tagliatelle
     - tagalign # too fussy
     - testpackage # too annoying
     #- thelper

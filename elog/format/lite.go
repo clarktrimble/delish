@@ -4,40 +4,38 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"time"
 
-	"github.com/clarktrimble/delish/elog/value"
+	"github.com/clarktrimble/delish/elog/logmsg"
 )
 
 type Lite struct{}
 
-func (lt *Lite) Format(ts time.Time, level, msg string, ctxFlds, flds map[string]value.Value) ([]byte, error) {
-	//func (lt *Lite) Format(ts time.Time, level, msg string, ctxFlds, flds map[string]string) []byte {
-	// Format(ts time.Time, level, msg string, ctxFlds, flds map[string]value.Value) (data []byte, err error)
+func (lt *Lite) Format(lm logmsg.LogMsg) ([]byte, error) {
 
 	bldr := &strings.Builder{}
-	now := ts.Format("15:04:05.0000")
-	fromCtx := strings.Join(pairs(ctxFlds), "  ")
+	now := lm.Ts.Format("15:04:05.0000")
+	fromCtx := strings.Join(pairs(lm.CtxFields), "  ")
 
-	sep := ">"
-	if level == "error" {
-		sep = "*"
-	}
-
-	fmt.Fprintf(bldr, "%s %s %s | %s\n", now, sep, msg, fromCtx)
-	for _, pair := range pairs(flds) {
+	fmt.Fprintf(bldr, "%s %s %s | %s\n", now, lm.Level, lm.Msg, fromCtx)
+	for _, pair := range pairs(lm.Fields) {
 		fmt.Fprintf(bldr, "                %s\n", pair)
 	}
 
 	return []byte(bldr.String()), nil
 }
 
-func pairs(flds map[string]value.Value) (pairs []string) {
+func pairs(flds logmsg.Fields) (pairs []string) {
 
 	pairs = []string{}
 
 	for key, val := range flds {
-		pairs = append(pairs, fmt.Sprintf("%s: %s", key, val.Data))
+
+		data := val.Data
+		if val.Quoted && len(data) > 1 {
+			data = data[1 : len(data)-1]
+		}
+
+		pairs = append(pairs, fmt.Sprintf("%s: %s", key, data))
 	}
 	sort.Strings(pairs)
 
