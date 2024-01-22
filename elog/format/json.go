@@ -1,13 +1,14 @@
 package format
 
 import (
-	"encoding/json"
 	"time"
-
-	"github.com/pkg/errors"
 
 	"github.com/clarktrimble/delish/elog/logmsg"
 )
+
+// rfi:
+// - Value sync.Pool ftw or at least know len for Marshall
+// - prolly append ts, msg, level here, just get frags from fields "Marshal"
 
 type Json struct{}
 
@@ -24,11 +25,7 @@ func (jsn *Json) Format(lm logmsg.LogMsg) (data []byte, err error) {
 	fields[jsonLevelKey] = logmsg.NewValue(lm.Level)
 	fields[jsonTsKey] = logmsg.NewValue(lm.Ts.Format(time.RFC3339))
 
-	data, err = json.Marshal(fields)
-	if err != nil {
-		err = errors.Wrap(err, "failed to marshal log message")
-		return
-	}
+	data = fields.Marshal()
 
 	data = append(data, '\n')
 	return

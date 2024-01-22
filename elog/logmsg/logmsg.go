@@ -10,11 +10,17 @@ import (
 	"github.com/pkg/errors"
 )
 
+// rfi:
+// - pointerize Value and it's Data in support of Write method, or just keep appending?
+// - Value sync.Pool ftw or at least know len for Marshall
+// - think about more/diff Value metadata in support of depthy obj logging in Marshal
+// - https://dave.cheney.net/2016/04/27/dont-just-check-errors-handle-them-gracefully (behave!)
+
 const (
 	ErrorKey string = "logerror"
 )
 
-var NoValueError = errors.New("no value set")
+var NoValueError = errors.New("no value set") //nolint: errname // not now
 
 type LogMsg struct {
 	Ts        time.Time
@@ -25,6 +31,22 @@ type LogMsg struct {
 }
 
 type Fields map[string]Value
+
+func (fields Fields) Marshal() []byte {
+
+	data := make([]byte, 0, 1024)
+
+	data = append(data, '{')
+	for key, val := range fields {
+		data = strconv.AppendQuote(data, key)
+		data = append(data, ':')
+		data = append(data, val.Data...)
+		data = append(data, ',')
+	}
+	data[len(data)-1] = '}'
+
+	return data
+}
 
 func (fields Fields) Store(ctx context.Context) context.Context {
 	return context.WithValue(ctx, ctxKey{}, fields)

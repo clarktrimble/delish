@@ -15,17 +15,17 @@ import (
 	"github.com/clarktrimble/delish/elog/logmsg"
 )
 
-// logger is flat as pancake
+// logger is flat as pancake, or is it?
 // no groups ..
 // ctx ftw
-// performance, no (never paid for such?) is interesting though!
+// performance, no (never paid for such?) is interesting though! (canna reist?)
 
 type formatter interface {
 	Format(logMsg logmsg.LogMsg) ([]byte, error)
 }
 
 const (
-	trunc string = "--truncated--"
+// trunc string = "--truncated--"
 )
 
 type MinLog struct {
@@ -43,13 +43,13 @@ func New() *MinLog {
 	return &MinLog{
 		Writer:    os.Stdout,
 		AltWriter: os.Stderr,
-		Formatter: &format.Lite{},
-		InfoStr:   ">",
-		ErrorStr:  "*",
-		//Formatter: &format.Json{},
-		//Escape:    true,
-		//InfoStr:   "info",
-		//ErrorStr:  "error",
+		//Formatter: &format.Lite{},
+		//InfoStr:   ">",
+		//ErrorStr:  "*",
+		Formatter: &format.Json{},
+		Escape:    true,
+		InfoStr:   "info",
+		ErrorStr:  "error",
 	}
 }
 
@@ -61,9 +61,6 @@ func New() *MinLog {
 // x dont forget to look over logerror's, at min a field would be nice
 // - put error trace in it's own field
 // x look at map[string][]byte ??
-// - format wants to return reader
-// - cfg lvl strings
-// - sync pool values, json.encode
 // - trunc
 
 func (ml *MinLog) Info(ctx context.Context, msg string, kv ...any) {
