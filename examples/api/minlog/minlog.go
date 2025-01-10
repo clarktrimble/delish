@@ -21,6 +21,12 @@ func (ml *MinLog) Info(ctx context.Context, msg string, kv ...any) {
 	log(ctx, ">", msg, kv)
 }
 
+// Debug logs info.
+func (ml *MinLog) Debug(ctx context.Context, msg string, kv ...any) {
+
+	log(ctx, "-", msg, kv)
+}
+
 // Error logs an error.
 func (ml *MinLog) Error(ctx context.Context, msg string, err error, kv ...any) {
 

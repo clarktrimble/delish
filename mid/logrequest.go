@@ -51,7 +51,7 @@ func LogRequest(lgr logger, next http.Handler) http.HandlerFunc {
 			}
 		}
 
-		lgr.Info(ctx, "received request", fields...)
+		lgr.Debug(ctx, "received request", fields...)
 		next.ServeHTTP(writer, request)
 	}
 }
