@@ -33,7 +33,7 @@ func LogResponse(lgr logger, next http.Handler) http.HandlerFunc {
 			fields = append(fields, buf.Body())
 		}
 
-		lgr.Info(ctx, "sending response", fields...)
+		lgr.Debug(ctx, "sending response", fields...)
 
 		err := buf.WriteResponse()
 		if err != nil {

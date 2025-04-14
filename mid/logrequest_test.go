@@ -26,7 +26,7 @@ var _ = Describe("LogRequest", func() {
 		})
 
 		lgr = &loggerMock{
-			InfoFunc: func(ctx context.Context, msg string, kv ...any) {},
+			DebugFunc: func(ctx context.Context, msg string, kv ...any) {},
 			WithFieldsFunc: func(ctx context.Context, kv ...any) context.Context {
 				return ctx
 			},
@@ -55,7 +55,7 @@ var _ = Describe("LogRequest", func() {
 				})
 
 				It("logs mostly empty fields related to the request and does not panic", func() {
-					ic := lgr.InfoCalls()
+					ic := lgr.DebugCalls()
 					Expect(ic).To(HaveLen(1))
 					Expect(ic[0].Msg).To(Equal("received request"))
 					Expect(ic[0].Kv).To(HaveExactElements([]any{
@@ -85,7 +85,7 @@ var _ = Describe("LogRequest", func() {
 				})
 
 				It("logs fields related to the request and body is intact", func() {
-					ic := lgr.InfoCalls()
+					ic := lgr.DebugCalls()
 					Expect(ic).To(HaveLen(1))
 					Expect(ic[0].Msg).To(Equal("received request"))
 					Expect(ic[0].Kv).To(HaveExactElements([]any{
@@ -111,7 +111,7 @@ var _ = Describe("LogRequest", func() {
 					})
 
 					It("redacts that header in the logging", func() {
-						ic := lgr.InfoCalls()
+						ic := lgr.DebugCalls()
 						Expect(ic).To(HaveLen(1))
 						Expect(ic[0].Msg).To(Equal("received request"))
 						Expect(ic[0].Kv).To(HaveExactElements([]any{
@@ -135,7 +135,7 @@ var _ = Describe("LogRequest", func() {
 					})
 
 					It("does not log the body and body is intact", func() {
-						ic := lgr.InfoCalls()
+						ic := lgr.DebugCalls()
 						Expect(ic).To(HaveLen(1))
 						Expect(ic[0].Msg).To(Equal("received request"))
 						Expect(ic[0].Kv).To(HaveExactElements([]any{

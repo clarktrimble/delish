@@ -21,7 +21,7 @@ var _ = Describe("LogResponse", func() {
 		recorder = httptest.NewRecorder()
 
 		lgr = &loggerMock{
-			InfoFunc: func(ctx context.Context, msg string, kv ...any) {},
+			DebugFunc: func(ctx context.Context, msg string, kv ...any) {},
 		}
 
 		SkipBody = false
@@ -39,7 +39,7 @@ var _ = Describe("LogResponse", func() {
 			})
 
 			It("logs fields related to the response and body is intact", func() {
-				ic := lgr.InfoCalls()
+				ic := lgr.DebugCalls()
 				Expect(ic).To(HaveLen(1))
 				Expect(ic[0].Msg).To(Equal("sending response"))
 				Expect(mapLog(ic[0].Kv)).To(Equal(map[string]any{
@@ -58,7 +58,7 @@ var _ = Describe("LogResponse", func() {
 				})
 
 				It("does not log body and body is intact", func() {
-					ic := lgr.InfoCalls()
+					ic := lgr.DebugCalls()
 					Expect(ic).To(HaveLen(1))
 					Expect(ic[0].Msg).To(Equal("sending response"))
 					Expect(mapLog(ic[0].Kv)).To(Equal(map[string]any{
