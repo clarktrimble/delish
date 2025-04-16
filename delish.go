@@ -83,6 +83,19 @@ func ObjHandler(name string, obj any, lgr logger) http.HandlerFunc {
 	}
 }
 
+// LogLevel carries water (somewhat awkwardly?) to set level in.. ah, logger.
+func LogLevel(ctx context.Context, lgr logger) http.HandlerFunc {
+	// Todo: unit!!
+
+	return func(writer http.ResponseWriter, request *http.Request) {
+		level := request.PathValue("level")
+		lgr.Info(ctx, "setting log level", "level", level)
+
+		err := lgr.SetLevel(ctx, level)
+		respond.New(writer, lgr).GoNoGo(ctx, http.StatusBadRequest, err)
+	}
+}
+
 // unexported
 
 type logger interface {
@@ -90,6 +103,7 @@ type logger interface {
 	Debug(ctx context.Context, msg string, kv ...any)
 	Error(ctx context.Context, msg string, err error, kv ...any)
 	WithFields(ctx context.Context, kv ...any) context.Context
+	SetLevel(ctx context.Context, level string) (err error)
 }
 
 func (svr *Server) work(ctx context.Context, httpServer *http.Server) {

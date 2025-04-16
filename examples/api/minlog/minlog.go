@@ -46,6 +46,12 @@ func (ml *MinLog) WithFields(ctx context.Context, kv ...any) context.Context {
 	return ctx
 }
 
+// SetLevel is not demo'd here.
+func (ml *MinLog) SetLevel(ctx context.Context, level string) (err error) {
+	// noop
+	return
+}
+
 // unexported
 
 type ctxKey struct{}
