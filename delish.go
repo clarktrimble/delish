@@ -89,7 +89,7 @@ func LogLevel(ctx context.Context, lgr logger) http.HandlerFunc {
 
 	return func(writer http.ResponseWriter, request *http.Request) {
 		level := request.PathValue("level")
-		lgr.Info(ctx, "setting log level", "level", level)
+		lgr.Info(ctx, "setting log level", "new_level", level)
 
 		err := lgr.SetLevel(ctx, level)
 		respond.New(writer, lgr).GoNoGo(ctx, http.StatusBadRequest, err)
