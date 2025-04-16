@@ -15,6 +15,16 @@ type Respond struct {
 	Logger logger
 }
 
+// New creates a Respond.
+func New(writer http.ResponseWriter, lgr logger) *Respond {
+	// Todo: unit!!
+
+	return &Respond{
+		Writer: writer,
+		Logger: lgr,
+	}
+}
+
 // Ok responds with 200 ok.
 func (rp *Respond) Ok(ctx context.Context) {
 
@@ -29,6 +39,17 @@ func (rp *Respond) NotOk(ctx context.Context, code int, err error) {
 
 	rp.Logger.Error(ctx, "returning error to client", err)
 	rp.WriteObjects(ctx, map[string]any{"error": err.Error()})
+}
+
+// GoNoGo calls NotOk or Ok.
+func (rp *Respond) GoNoGo(ctx context.Context, code int, err error) {
+	// Todo: unit!!
+
+	if err != nil {
+		rp.NotOk(ctx, code, err)
+	}
+
+	rp.Ok(ctx)
 }
 
 // NotFound responds with 404 not found.
