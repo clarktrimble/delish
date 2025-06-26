@@ -56,3 +56,10 @@ func (buf *Buffered) WriteResponse() (err error) {
 	err = errors.Wrapf(err, "failed to write response")
 	return
 }
+
+func (buf *Buffered) Flush() {
+	buf.WriteHeader(buf.Status)
+	_, _ = buf.Write(buf.Buffer.Bytes())
+
+	buf.Buffer.Reset()
+}

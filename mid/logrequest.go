@@ -41,6 +41,7 @@ func LogRequest(lgr logger, next http.Handler) http.HandlerFunc {
 			"headers", redact(request.Header),
 		}
 
+		// Todo: config skip body yeah??
 		if !SkipBody {
 			body, err := requestBody(request)
 			if err != nil {
