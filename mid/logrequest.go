@@ -17,6 +17,7 @@ const (
 
 var (
 	RedactHeaders = map[string]bool{}
+	SkipPaths     = map[string]bool{}
 	SkipBody      bool
 )
 

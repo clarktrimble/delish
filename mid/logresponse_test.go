@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -30,7 +31,9 @@ var _ = Describe("LogResponse", func() {
 	Describe("logging the response", func() {
 
 		JustBeforeEach(func() {
-			handler.ServeHTTP(recorder, &http.Request{})
+			url, err := url.Parse("http://test.com/blah")
+			Expect(err).ToNot(HaveOccurred())
+			handler.ServeHTTP(recorder, &http.Request{URL: url})
 		})
 
 		When("the hander is wrapped with the middleware", func() {
