@@ -13,16 +13,13 @@ func LogResponse(lgr logger, next http.Handler) http.HandlerFunc {
 
 	return func(writer http.ResponseWriter, request *http.Request) {
 
-		start := time.Now()
-		ctx := request.Context()
-
-		if SkipPaths[request.URL.Path] {
-			// Stream directly, no buffering
+		if skipLogging(request) {
 			next.ServeHTTP(writer, request)
-			//lgr.Debug(ctx, "streaming response", "path", request.URL.Path, "elapsed", time.Since(start))
 			return
 		}
 
+		start := time.Now()
+		ctx := request.Context()
 		buf := &buffered.Buffered{
 			Writer: writer,
 			Buffer: bytes.Buffer{},

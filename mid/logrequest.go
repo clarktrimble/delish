@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"github.com/clarktrimble/hondo"
@@ -17,14 +18,30 @@ const (
 
 var (
 	RedactHeaders = map[string]bool{}
-	SkipPaths     = map[string]bool{}
+	SkipPattern   *regexp.Regexp
 	SkipBody      bool
 )
+
+func skipLogging(request *http.Request) bool {
+
+	// Todo: unit
+	// Todo: log just a little? body is really the heavy lift here
+	// lgr.Trace(ctx, "streaming response", "path", request.URL.Path, "elapsed", time.Since(start))
+
+	return SkipPattern != nil &&
+		request.URL != nil &&
+		SkipPattern.MatchString(request.URL.Path)
+}
 
 // LogRequest is a middleware which logs the request.
 func LogRequest(lgr logger, next http.Handler) http.HandlerFunc {
 
 	return func(writer http.ResponseWriter, request *http.Request) {
+
+		if skipLogging(request) {
+			next.ServeHTTP(writer, request)
+			return
+		}
 
 		ctx := request.Context()
 		ctx = lgr.WithFields(ctx, "request_id", hondo.Rand(idLen))
