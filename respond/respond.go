@@ -47,6 +47,7 @@ func (rp *Respond) GoNoGo(ctx context.Context, code int, err error) {
 
 	if err != nil {
 		rp.NotOk(ctx, code, err)
+		return
 	}
 
 	rp.Ok(ctx)

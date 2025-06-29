@@ -58,6 +58,7 @@ func (buf *Buffered) WriteResponse() (err error) {
 }
 
 func (buf *Buffered) Flush() {
+	// Note this did not work for stream proxy, buffered is buffered?
 	buf.WriteHeader(buf.Status)
 	_, _ = buf.Write(buf.Buffer.Bytes())
 
