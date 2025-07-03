@@ -51,6 +51,9 @@ func (ml *MinLog) SetLevel(ctx context.Context, level string) (err error) {
 	// noop
 	return
 }
+func (ml *MinLog) GetLevel() string {
+	return "not_implemented"
+}
 
 // unexported
 

@@ -96,6 +96,15 @@ func LogLevel(ctx context.Context, lgr logger) http.HandlerFunc {
 	}
 }
 
+// GetLogLevel gets, bah.
+func GetLogLevel(ctx context.Context, lgr logger) http.HandlerFunc {
+	// Todo: unit!! or more likely move maybe to sabot and reg on rtr
+
+	return func(writer http.ResponseWriter, request *http.Request) {
+		respond.New(writer, lgr).WriteObjects(ctx, map[string]any{"log_level": lgr.GetLevel()})
+	}
+}
+
 // unexported
 
 type logger interface {
@@ -104,6 +113,7 @@ type logger interface {
 	Error(ctx context.Context, msg string, err error, kv ...any)
 	WithFields(ctx context.Context, kv ...any) context.Context
 	SetLevel(ctx context.Context, level string) (err error)
+	GetLevel() string
 }
 
 func (svr *Server) work(ctx context.Context, httpServer *http.Server) {
