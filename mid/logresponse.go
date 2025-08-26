@@ -13,6 +13,11 @@ func LogResponse(lgr logger, next http.Handler) http.HandlerFunc {
 
 	return func(writer http.ResponseWriter, request *http.Request) {
 
+		if skipLogging(request) {
+			next.ServeHTTP(writer, request)
+			return
+		}
+
 		start := time.Now()
 		ctx := request.Context()
 		buf := &buffered.Buffered{

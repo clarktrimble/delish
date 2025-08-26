@@ -1,6 +1,6 @@
 module github.com/clarktrimble/delish
 
-go 1.23
+go 1.25
 
 require (
 	github.com/clarktrimble/hondo v0.0.2
