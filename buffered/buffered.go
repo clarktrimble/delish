@@ -57,6 +57,7 @@ func (buf *Buffered) WriteResponse() (err error) {
 	return
 }
 
+/*
 func (buf *Buffered) Flush() {
 	// Not suitable for streaming!!
 	// Todo: perhaps better off w/o Flush at all??
@@ -65,3 +66,4 @@ func (buf *Buffered) Flush() {
 	_, _ = buf.Writer.Write(buf.Buffer.Bytes())
 	buf.Buffer.Reset()
 }
+*/

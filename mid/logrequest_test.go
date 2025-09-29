@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"math/rand"
 	"net/http"
 	"net/http/httptest"
 
@@ -35,7 +34,7 @@ var _ = Describe("LogRequest", func() {
 		RedactHeaders = map[string]bool{}
 		SkipBody = false
 
-		rand.Seed(1) //nolint:staticcheck // unit request_id
+		//rand.Seed(1) //nolint:staticcheck // unit request_id
 	})
 
 	Describe("logging the request", func() {
