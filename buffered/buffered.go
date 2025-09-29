@@ -58,9 +58,10 @@ func (buf *Buffered) WriteResponse() (err error) {
 }
 
 func (buf *Buffered) Flush() {
-	// Note this did not work for stream proxy, buffered is buffered?
+	// Not suitable for streaming!!
+	// Todo: perhaps better off w/o Flush at all??
+	// Todo: unit
 	buf.WriteHeader(buf.Status)
-	_, _ = buf.Write(buf.Buffer.Bytes())
-
+	_, _ = buf.Writer.Write(buf.Buffer.Bytes())
 	buf.Buffer.Reset()
 }
