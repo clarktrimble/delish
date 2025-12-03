@@ -57,13 +57,7 @@ func (buf *Buffered) WriteResponse() (err error) {
 	return
 }
 
-/*
-func (buf *Buffered) Flush() {
-	// Not suitable for streaming!!
-	// Todo: perhaps better off w/o Flush at all??
-	// Todo: unit
-	buf.WriteHeader(buf.Status)
-	_, _ = buf.Writer.Write(buf.Buffer.Bytes())
-	buf.Buffer.Reset()
-}
-*/
+// Note: Flush free!!
+// Half-ass implementation broke templ.
+// Maybe this is worth fixing, but needs real thought.
+// And solid testing.
