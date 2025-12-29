@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/clarktrimble/delish/logger"
 	"github.com/clarktrimble/delish/respond"
 	"github.com/clarktrimble/hondo"
 	"github.com/pkg/errors"
@@ -18,7 +19,7 @@ type Config struct {
 }
 
 // New creates a service from Config.
-func (cfg *Config) New(rtr router, lgr logger) (svc *service) {
+func (cfg *Config) New(rtr router, lgr logger.Logger) (svc *service) {
 
 	svc = &service{
 		interval: cfg.Interval,
@@ -48,12 +49,6 @@ func (svc *service) Start(ctx context.Context, wg *sync.WaitGroup) {
 
 // unexported
 
-type logger interface {
-	Info(ctx context.Context, msg string, kv ...any)
-	Error(ctx context.Context, msg string, err error, kv ...any)
-	WithFields(ctx context.Context, kv ...any) context.Context
-}
-
 type router interface {
 	HandleFunc(pattern string, handler http.HandlerFunc)
 }
@@ -62,7 +57,7 @@ type service struct {
 	interval time.Duration
 	count    int
 	started  bool
-	logger   logger
+	logger   logger.Logger
 }
 
 func (svc *service) report(writer http.ResponseWriter, request *http.Request) {

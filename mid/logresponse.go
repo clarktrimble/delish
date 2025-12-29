@@ -6,10 +6,11 @@ import (
 	"time"
 
 	"github.com/clarktrimble/delish/buffered"
+	"github.com/clarktrimble/delish/logger"
 )
 
 // LogResponse is a middleware which logs the response
-func LogResponse(lgr logger, next http.Handler) http.HandlerFunc {
+func LogResponse(lgr logger.Logger, next http.Handler) http.HandlerFunc {
 
 	return func(writer http.ResponseWriter, request *http.Request) {
 
@@ -38,7 +39,7 @@ func LogResponse(lgr logger, next http.Handler) http.HandlerFunc {
 			fields = append(fields, buf.Body())
 		}
 
-		lgr.Debug(ctx, "sending response", fields...)
+		lgr.Trace(ctx, "sending response", fields...)
 
 		err := buf.WriteResponse()
 		if err != nil {

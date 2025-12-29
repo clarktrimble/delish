@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/clarktrimble/delish/logger"
 	"github.com/clarktrimble/delish/mid"
 	"github.com/clarktrimble/delish/respond"
 	"github.com/pkg/errors"
@@ -24,12 +25,12 @@ type Config struct {
 type Server struct {
 	Addr    string
 	Handler http.Handler
-	Logger  logger
+	Logger  logger.Logger
 	Timeout time.Duration
 }
 
 // New creates a server from config
-func (cfg *Config) New(handler http.Handler, lgr logger) (svr *Server) {
+func (cfg *Config) New(handler http.Handler, lgr logger.Logger) (svr *Server) {
 
 	svr = &Server{
 		Addr:    fmt.Sprintf("%s:%d", cfg.Host, cfg.Port),
@@ -42,7 +43,7 @@ func (cfg *Config) New(handler http.Handler, lgr logger) (svr *Server) {
 }
 
 // NewWithLog is a convinience creating a server wrapped with logging from config.
-func (cfg *Config) NewWithLog(ctx context.Context, handler http.Handler, lgr logger) (svr *Server) {
+func (cfg *Config) NewWithLog(ctx context.Context, handler http.Handler, lgr logger.Logger) (svr *Server) {
 
 	handler = mid.LogResponse(lgr, handler)
 	handler = mid.LogRequest(lgr, handler)
@@ -70,7 +71,7 @@ func (svr *Server) Start(ctx context.Context, wg *sync.WaitGroup) {
 }
 
 // ObjHandler is a convinience method that responds with a marshalled named object
-func ObjHandler(name string, obj any, lgr logger) http.HandlerFunc {
+func ObjHandler(name string, obj any, lgr logger.Logger) http.HandlerFunc {
 
 	return func(writer http.ResponseWriter, request *http.Request) {
 
@@ -84,7 +85,7 @@ func ObjHandler(name string, obj any, lgr logger) http.HandlerFunc {
 }
 
 // LogLevel carries water (somewhat awkwardly?) to set level in.. ah, logger.
-func LogLevel(ctx context.Context, lgr logger) http.HandlerFunc {
+func LogLevel(ctx context.Context, lgr logger.Logger) http.HandlerFunc {
 	// Todo: unit!!
 
 	return func(writer http.ResponseWriter, request *http.Request) {
@@ -97,23 +98,12 @@ func LogLevel(ctx context.Context, lgr logger) http.HandlerFunc {
 }
 
 // GetLogLevel gets, bah.
-func GetLogLevel(ctx context.Context, lgr logger) http.HandlerFunc {
+func GetLogLevel(ctx context.Context, lgr logger.Logger) http.HandlerFunc {
 	// Todo: unit!! or more likely move maybe to sabot and reg on rtr
 
 	return func(writer http.ResponseWriter, request *http.Request) {
 		respond.New(writer, lgr).WriteObjects(ctx, map[string]any{"log_level": lgr.GetLevel()})
 	}
-}
-
-// unexported
-
-type logger interface {
-	Info(ctx context.Context, msg string, kv ...any)
-	Debug(ctx context.Context, msg string, kv ...any)
-	Error(ctx context.Context, msg string, err error, kv ...any)
-	WithFields(ctx context.Context, kv ...any) context.Context
-	SetLevel(ctx context.Context, level string) (err error)
-	GetLevel() string
 }
 
 func (svr *Server) work(ctx context.Context, httpServer *http.Server) {

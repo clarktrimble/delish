@@ -11,12 +11,14 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+//go:generate moq -pkg mid -out mock_test.go ../logger Logger
+
 var _ = Describe("LogRequest", func() {
 	var (
 		handler  http.Handler
 		request  *http.Request
 		received *http.Request
-		lgr      *loggerMock
+		lgr      *LoggerMock
 	)
 
 	BeforeEach(func() {
@@ -24,8 +26,8 @@ var _ = Describe("LogRequest", func() {
 			received = request
 		})
 
-		lgr = &loggerMock{
-			DebugFunc: func(ctx context.Context, msg string, kv ...any) {},
+		lgr = &LoggerMock{
+			TraceFunc: func(ctx context.Context, msg string, kv ...any) {},
 			WithFieldsFunc: func(ctx context.Context, kv ...any) context.Context {
 				return ctx
 			},
@@ -54,7 +56,7 @@ var _ = Describe("LogRequest", func() {
 				})
 
 				It("logs mostly empty fields related to the request and does not panic", func() {
-					ic := lgr.DebugCalls()
+					ic := lgr.TraceCalls()
 					Expect(ic).To(HaveLen(1))
 					Expect(ic[0].Msg).To(Equal("received request"))
 					Expect(ic[0].Kv).To(HaveExactElements([]any{
@@ -85,7 +87,7 @@ var _ = Describe("LogRequest", func() {
 				})
 
 				It("logs fields related to the request and body is intact", func() {
-					ic := lgr.DebugCalls()
+					ic := lgr.TraceCalls()
 					Expect(ic).To(HaveLen(1))
 					Expect(ic[0].Msg).To(Equal("received request"))
 					Expect(ic[0].Kv).To(HaveExactElements([]any{
@@ -111,7 +113,7 @@ var _ = Describe("LogRequest", func() {
 					})
 
 					It("redacts that header in the logging", func() {
-						ic := lgr.DebugCalls()
+						ic := lgr.TraceCalls()
 						Expect(ic).To(HaveLen(1))
 						Expect(ic[0].Msg).To(Equal("received request"))
 						Expect(ic[0].Kv).To(HaveExactElements([]any{
@@ -135,7 +137,7 @@ var _ = Describe("LogRequest", func() {
 					})
 
 					It("does not log the body and body is intact", func() {
-						ic := lgr.DebugCalls()
+						ic := lgr.TraceCalls()
 						Expect(ic).To(HaveLen(1))
 						Expect(ic[0].Msg).To(Equal("received request"))
 						Expect(ic[0].Kv).To(HaveExactElements([]any{

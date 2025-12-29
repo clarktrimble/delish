@@ -5,9 +5,9 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"regexp"
 	"strings"
 
+	"github.com/clarktrimble/delish/logger"
 	"github.com/clarktrimble/hondo"
 	"github.com/pkg/errors"
 )
@@ -16,25 +16,8 @@ const (
 	idLen int = 7
 )
 
-var (
-	RedactHeaders = map[string]bool{}
-	SkipPattern   *regexp.Regexp
-	SkipBody      bool
-)
-
-func skipLogging(request *http.Request) bool {
-
-	// Todo: unit
-	// Todo: log just a little? body is really the heavy lift here
-	// lgr.Trace(ctx, "streaming response", "path", request.URL.Path, "elapsed", time.Since(start))
-
-	return SkipPattern != nil &&
-		request.URL != nil &&
-		SkipPattern.MatchString(request.URL.Path)
-}
-
 // LogRequest is a middleware which logs the request.
-func LogRequest(lgr logger, next http.Handler) http.HandlerFunc {
+func LogRequest(lgr logger.Logger, next http.Handler) http.HandlerFunc {
 
 	return func(writer http.ResponseWriter, request *http.Request) {
 
@@ -70,7 +53,7 @@ func LogRequest(lgr logger, next http.Handler) http.HandlerFunc {
 			}
 		}
 
-		lgr.Debug(ctx, "received request", fields...)
+		lgr.Trace(ctx, "received request", fields...)
 		next.ServeHTTP(writer, request)
 	}
 }

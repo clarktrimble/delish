@@ -8,6 +8,8 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
+
+	"github.com/clarktrimble/delish/logger"
 )
 
 var (
@@ -19,7 +21,7 @@ var (
 type Graceful struct {
 	WaitGroup *sync.WaitGroup
 	Cancel    context.CancelFunc
-	Logger    logger
+	Logger    logger.Logger
 }
 
 // Initialize sets up the one and only graceful; singelton!
@@ -28,7 +30,7 @@ type Graceful struct {
 // WaitGroup is stashed for use in Wait below.
 // Logger is used to log startup and shutdown.
 // kv key-value pairs are logged with startup message.
-func Initialize(ctx context.Context, wg *sync.WaitGroup, lgr logger, kv ...any) context.Context {
+func Initialize(ctx context.Context, wg *sync.WaitGroup, lgr logger.Logger, kv ...any) context.Context {
 
 	lgr.Info(ctx, "starting up", kv...)
 	ctx, cancel := context.WithCancel(ctx)
@@ -60,10 +62,4 @@ func Wait(ctx context.Context) {
 	graceful.WaitGroup.Wait()
 
 	graceful.Logger.Info(ctx, "stopped")
-}
-
-// unexported
-
-type logger interface {
-	Info(ctx context.Context, msg string, kv ...any)
 }

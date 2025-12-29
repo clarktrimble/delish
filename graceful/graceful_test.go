@@ -12,7 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-//go:generate moq -out mock_test.go . logger
+//go:generate moq -pkg graceful -out mock_test.go ../logger Logger
 
 func TestMid(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -22,12 +22,12 @@ func TestMid(t *testing.T) {
 var _ = Describe("Graceful", func() {
 	var (
 		ctx context.Context
-		lgr *loggerMock
+		lgr *LoggerMock
 		wg  sync.WaitGroup
 	)
 
 	BeforeEach(func() {
-		lgr = &loggerMock{
+		lgr = &LoggerMock{
 			InfoFunc: func(ctx context.Context, msg string, kv ...any) {},
 		}
 
@@ -97,7 +97,7 @@ func (svc *testSvc) Started() bool {
 	return svc.started
 }
 
-func (svc *testSvc) Start(ctx context.Context, wg *sync.WaitGroup, lgr logger) {
+func (svc *testSvc) Start(ctx context.Context, wg *sync.WaitGroup, lgr *LoggerMock) {
 
 	lgr.Info(ctx, "starting testSvc")
 

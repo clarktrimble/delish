@@ -13,15 +13,15 @@ var _ = Describe("LogResponse", func() {
 	var (
 		handler  http.Handler
 		recorder *httptest.ResponseRecorder
-		lgr      *loggerMock
+		lgr      *LoggerMock
 	)
 
 	BeforeEach(func() {
 		handler = jsonHandler(201, `{"ima":"pc"}`)
 		recorder = httptest.NewRecorder()
 
-		lgr = &loggerMock{
-			DebugFunc: func(ctx context.Context, msg string, kv ...any) {},
+		lgr = &LoggerMock{
+			TraceFunc: func(ctx context.Context, msg string, kv ...any) {},
 		}
 
 		SkipBody = false
@@ -39,7 +39,7 @@ var _ = Describe("LogResponse", func() {
 			})
 
 			It("logs fields related to the response and body is intact", func() {
-				ic := lgr.DebugCalls()
+				ic := lgr.TraceCalls()
 				Expect(ic).To(HaveLen(1))
 				Expect(ic[0].Msg).To(Equal("sending response"))
 				Expect(mapLog(ic[0].Kv)).To(Equal(map[string]any{
@@ -58,7 +58,7 @@ var _ = Describe("LogResponse", func() {
 				})
 
 				It("does not log body and body is intact", func() {
-					ic := lgr.DebugCalls()
+					ic := lgr.TraceCalls()
 					Expect(ic).To(HaveLen(1))
 					Expect(ic[0].Msg).To(Equal("sending response"))
 					Expect(mapLog(ic[0].Kv)).To(Equal(map[string]any{

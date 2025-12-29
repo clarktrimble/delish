@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"net/http"
 
+	"github.com/clarktrimble/delish/logger"
 	"github.com/pkg/errors"
 )
 
@@ -15,11 +16,11 @@ import (
 // Respond provides convinience methods when responding to a json request.
 type Respond struct {
 	Writer http.ResponseWriter
-	Logger logger
+	Logger logger.Logger
 }
 
 // New creates a Respond.
-func New(writer http.ResponseWriter, lgr logger) *Respond {
+func New(writer http.ResponseWriter, lgr logger.Logger) *Respond {
 	// Todo: unit!!
 
 	return &Respond{
@@ -124,11 +125,6 @@ func (rp *Respond) Write(ctx context.Context, data []byte) {
 }
 
 // unexported
-
-type logger interface {
-	// Todo: public and look at godoc ffs :)
-	Error(ctx context.Context, msg string, err error, kv ...any)
-}
 
 func (rp *Respond) jsonHeader(code int) {
 

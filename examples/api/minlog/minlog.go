@@ -21,8 +21,8 @@ func (ml *MinLog) Info(ctx context.Context, msg string, kv ...any) {
 	log(ctx, ">", msg, kv)
 }
 
-// Debug logs info.
-func (ml *MinLog) Debug(ctx context.Context, msg string, kv ...any) {
+// Trace logs trace.
+func (ml *MinLog) Trace(ctx context.Context, msg string, kv ...any) {
 
 	log(ctx, "-", msg, kv)
 }

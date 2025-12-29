@@ -14,7 +14,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-//go:generate moq -out mock_test.go . logger
+//go:generate moq -pkg delish -out mock_test.go ./logger Logger
 
 func TestDelish(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -24,13 +24,13 @@ func TestDelish(t *testing.T) {
 var _ = Describe("Delish", func() {
 	var (
 		handler http.Handler
-		lgr     *loggerMock
+		lgr     *LoggerMock
 		svr     *Server
 		cfg     *Config
 	)
 
 	BeforeEach(func() {
-		lgr = &loggerMock{
+		lgr = &LoggerMock{
 			InfoFunc:  func(ctx context.Context, msg string, kv ...any) {},
 			ErrorFunc: func(ctx context.Context, msg string, err error, kv ...any) {},
 		}

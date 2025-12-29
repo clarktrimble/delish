@@ -11,7 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-//go:generate moq -out mock_test.go . logger
+//go:generate moq -pkg respond -out mock_test.go ../logger Logger
 
 func TestRespond(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -22,7 +22,7 @@ var _ = Describe("Respond(ing)", func() {
 	var (
 		ctx    context.Context
 		writer *httptest.ResponseRecorder
-		lgr    *loggerMock
+		lgr    *LoggerMock
 		rp     *Respond
 	)
 
@@ -30,7 +30,7 @@ var _ = Describe("Respond(ing)", func() {
 		ctx = context.Background()
 		writer = httptest.NewRecorder()
 
-		lgr = &loggerMock{
+		lgr = &LoggerMock{
 			ErrorFunc: func(ctx context.Context, msg string, err error, kv ...any) {},
 		}
 
