@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"net/http"
 
+	"github.com/a-h/templ"
 	"github.com/clarktrimble/delish/logger"
 	"github.com/pkg/errors"
 )
@@ -110,6 +111,17 @@ func (rp *Respond) WriteHtml(ctx context.Context, content template.HTML) {
 
 	rp.Writer.Header().Set("Content-Type", "text/html")
 	rp.Write(ctx, []byte(content))
+}
+
+func (rp *Respond) WriteTempl(ctx context.Context, component templ.Component) {
+	// Todo: unit plzzz
+	rp.Writer.Header().Set("Content-Type", "text/html")
+	err := component.Render(ctx, rp.Writer)
+	if err != nil {
+		err = errors.Wrapf(err, "failed to render templ component")
+		rp.Logger.Error(ctx, "cannot write to response", err)
+	}
+	// Todo: set status and write some ERRORRR! html, maybe
 }
 
 // Write respondes with arbitrary data, logging if error.
