@@ -113,17 +113,6 @@ func (rp *Respond) WriteHtml(ctx context.Context, content template.HTML) {
 	rp.Write(ctx, []byte(content))
 }
 
-func (rp *Respond) WriteTempl(ctx context.Context, component templ.Component) {
-	// Todo: unit plzzz
-	rp.Writer.Header().Set("Content-Type", "text/html")
-	err := component.Render(ctx, rp.Writer)
-	if err != nil {
-		err = errors.Wrapf(err, "failed to render templ component")
-		rp.Logger.Error(ctx, "cannot write to response", err)
-	}
-	// Todo: set status and write some ERRORRR! html, maybe
-}
-
 // Write respondes with arbitrary data, logging if error.
 func (rp *Respond) Write(ctx context.Context, data []byte) {
 
@@ -135,6 +124,33 @@ func (rp *Respond) Write(ctx context.Context, data []byte) {
 		rp.Logger.Error(ctx, "failed to write response", err)
 	}
 }
+
+func (rp *Respond) WriteTempl(ctx context.Context, component templ.Component) {
+	// Todo: unit plzzz
+	rp.Writer.Header().Set("Content-Type", "text/html")
+	err := component.Render(ctx, rp.Writer)
+	if err != nil {
+		err = errors.Wrapf(err, "failed to render templ component")
+		rp.Logger.Error(ctx, "cannot write to response", err)
+	}
+	// Note: too late to set status see commented example below for alt
+}
+
+/*
+  // Todo: want something like this?
+  func (rp *Respond) WriteTempl(ctx context.Context, component templ.Component) {
+      var buf bytes.Buffer
+      if err := component.Render(ctx, &buf); err != nil {
+          rp.Logger.Error(ctx, "failed to render", err)
+          rp.Writer.Header().Set("Content-Type", "text/html")
+          rp.Writer.WriteHeader(500)
+          rp.Writer.Write([]byte(`<div class="error">Something went wrong</div>`))
+          return
+      }
+      rp.Writer.Header().Set("Content-Type", "text/html")
+      rp.Writer.Write(buf.Bytes())
+  }
+*/
 
 // unexported
 
