@@ -15,18 +15,14 @@ func SubSpec(spec []byte, version, release, url string) []byte {
 
 	apiRelease := release
 	if release == "untagged" {
-		apiRelease = version
+		apiRelease = "_untagged"
 	}
 	if apiRelease == "" {
-		apiRelease = "unreleased"
+		apiRelease = "_unreleased"
 	}
 	result := bytes.Replace(spec, []byte("${RELEASE}"), []byte(apiRelease), 1)
 	return bytes.Replace(result, []byte("${PUBLISHED_URL}"), []byte(url), 1)
 }
-
-// Todo: golang runtime stats ftw
-// Todo: unit and doc
-// Todo: I canhaz pluggable js/css?
 
 //go:embed docs.html
 var docsHtml []byte
