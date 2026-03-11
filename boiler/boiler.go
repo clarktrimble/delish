@@ -1,6 +1,7 @@
 package boiler
 
 import (
+	"bytes"
 	"context"
 	_ "embed"
 	"net/http"
@@ -9,8 +10,38 @@ import (
 	"github.com/clarktrimble/delish/logger"
 )
 
-// Todo: version made up in apispec
-// Todo: how does url work in stoplight page?
+// Config specifies boiler options.
+// Embed in app config to satisfy AppConfig interface.
+type Config struct {
+	Version string `json:"version" ignored:"true"`
+	Release string `json:"release" ignored:"true"`
+	Url     string `json:"url" desc:"URL referenced from API spec" default:"http://localhost:3031"`
+}
+
+// AppRelease gets version.
+func (cfg *Config) AppRelease() (release string) {
+
+	release = cfg.Release
+	if release == "untagged" {
+		release = cfg.Version
+	}
+	if release == "" {
+		release = "unreleased"
+	}
+	return
+}
+
+// AppUrl returns the published URL for the API spec.
+func (cfg *Config) AppUrl() string {
+	return cfg.Url
+}
+
+// AppConfig is satisfied by embedding Config.
+type AppConfig interface {
+	AppRelease() string
+	AppUrl() string
+}
+
 // Todo: golang runtime stats ftw
 // Todo: unit and doc
 // Todo: I canhaz pluggable js/css?
@@ -24,7 +55,13 @@ var elementsJs []byte
 //go:embed elements.min.css.gz
 var elementsCss []byte
 
-func NewRouter(ctx context.Context, cfg any, openapiSpec []byte, lgr logger.Logger) (rtr *http.ServeMux) {
+// NewRouter creates a router with boilerplate routes.
+// The openapiSpec may contain ${RELEASE} and ${PUBLISHED_URL} placeholders
+// which are replaced with values from cfg.
+func NewRouter(ctx context.Context, cfg AppConfig, openapiSpec []byte, lgr logger.Logger) (rtr *http.ServeMux) {
+
+	spec := bytes.Replace(openapiSpec, []byte("${RELEASE}"), []byte(cfg.AppRelease()), 1)
+	spec = bytes.Replace(spec, []byte("${PUBLISHED_URL}"), []byte(cfg.AppUrl()), 1)
 
 	rtr = http.NewServeMux()
 	rtr.HandleFunc("GET /config", delish.ObjHandler("config", cfg, lgr))
@@ -37,7 +74,7 @@ func NewRouter(ctx context.Context, cfg any, openapiSpec []byte, lgr logger.Logg
 	rtr.HandleFunc("GET /openapi.yaml", func(writer http.ResponseWriter, request *http.Request) {
 		writer.Header().Set("Content-Type", "application/x-yaml")
 		writer.Header().Set("Access-Control-Allow-Origin", "*")
-		_, _ = writer.Write(openapiSpec)
+		_, _ = writer.Write(spec)
 	})
 
 	return
