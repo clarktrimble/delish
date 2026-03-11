@@ -10,36 +10,18 @@ import (
 	"github.com/clarktrimble/delish/logger"
 )
 
-// Config specifies boiler options.
-// Embed in app config to satisfy AppConfig interface.
-type Config struct {
-	Version string `json:"version" ignored:"true"`
-	Release string `json:"release" ignored:"true"`
-	Url     string `json:"url" desc:"URL referenced from API spec" default:"http://localhost:3031"`
-}
+// SubSpec substitutes ${RELEASE} and ${PUBLISHED_URL} placeholders in an OpenAPI spec.
+func SubSpec(spec []byte, version, release, url string) []byte {
 
-// AppRelease gets version.
-func (cfg *Config) AppRelease() (release string) {
-
-	release = cfg.Release
+	apiRelease := release
 	if release == "untagged" {
-		release = cfg.Version
+		apiRelease = version
 	}
-	if release == "" {
-		release = "unreleased"
+	if apiRelease == "" {
+		apiRelease = "unreleased"
 	}
-	return
-}
-
-// AppUrl returns the published URL for the API spec.
-func (cfg *Config) AppUrl() string {
-	return cfg.Url
-}
-
-// AppConfig is satisfied by embedding Config.
-type AppConfig interface {
-	AppRelease() string
-	AppUrl() string
+	result := bytes.Replace(spec, []byte("${RELEASE}"), []byte(apiRelease), 1)
+	return bytes.Replace(result, []byte("${PUBLISHED_URL}"), []byte(url), 1)
 }
 
 // Todo: golang runtime stats ftw
@@ -56,12 +38,7 @@ var elementsJs []byte
 var elementsCss []byte
 
 // NewRouter creates a router with boilerplate routes.
-// The openapiSpec may contain ${RELEASE} and ${PUBLISHED_URL} placeholders
-// which are replaced with values from cfg.
-func NewRouter(ctx context.Context, cfg AppConfig, openapiSpec []byte, lgr logger.Logger) (rtr *http.ServeMux) {
-
-	spec := bytes.Replace(openapiSpec, []byte("${RELEASE}"), []byte(cfg.AppRelease()), 1)
-	spec = bytes.Replace(spec, []byte("${PUBLISHED_URL}"), []byte(cfg.AppUrl()), 1)
+func NewRouter(ctx context.Context, cfg any, spec []byte, lgr logger.Logger) (rtr *http.ServeMux) {
 
 	rtr = http.NewServeMux()
 	rtr.HandleFunc("GET /config", delish.ObjHandler("config", cfg, lgr))
