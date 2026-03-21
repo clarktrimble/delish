@@ -51,7 +51,7 @@ var _ = Describe("SubSpec", func() {
 		})
 
 		It("falls back to version with underscore prefix", func() {
-			Expect(string(result)).To(Equal("version: _untagged\nurl: https://example.com"))
+			Expect(string(result)).To(Equal("version: _abc123\nurl: https://example.com"))
 		})
 	})
 
@@ -70,16 +70,18 @@ var _ = Describe("SubSpec", func() {
 var _ = Describe("NewRouter", func() {
 
 	var (
-		ctx  context.Context
-		cfg  any
-		spec []byte
-		lgr  *LoggerMock
-		rtr  *http.ServeMux
+		ctx   context.Context
+		cfg   any
+		title string
+		spec  []byte
+		lgr   *LoggerMock
+		rtr   *http.ServeMux
 	)
 
 	BeforeEach(func() {
 		ctx = context.Background()
 		cfg = map[string]string{"foo": "bar"}
+		title = "Test API"
 		spec = []byte("openapi: 3.0.0")
 		lgr = &LoggerMock{
 			InfoFunc:  func(ctx context.Context, msg string, kv ...any) {},
@@ -88,7 +90,7 @@ var _ = Describe("NewRouter", func() {
 	})
 
 	JustBeforeEach(func() {
-		rtr = NewRouter(ctx, cfg, spec, lgr)
+		rtr = NewRouter(ctx, cfg, title, spec, lgr)
 	})
 
 	It("returns a non-nil router", func() {

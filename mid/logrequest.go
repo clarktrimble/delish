@@ -60,6 +60,7 @@ func LogRequest(lgr logger.Logger, next http.Handler) http.HandlerFunc {
 
 // unexported
 
+// Todo: clone already copies everything, loop only needs the redaction check
 func redact(header http.Header) (redacted http.Header) {
 
 	redacted = header.Clone()

@@ -11,11 +11,13 @@ import (
 )
 
 // SubSpec substitutes ${RELEASE} and ${PUBLISHED_URL} placeholders in an OpenAPI spec.
+// Version is a branch.revcount.revhash string (e.g. "main.42.abc1234"), used as a fallback
+// when release is "untagged". Release is a git tag (e.g. "1.2.3") or "untagged".
 func SubSpec(spec []byte, version, release, url string) []byte {
 
 	apiRelease := release
 	if release == "untagged" {
-		apiRelease = "_untagged"
+		apiRelease = "_" + version
 	}
 	if apiRelease == "" {
 		apiRelease = "_unreleased"
@@ -34,14 +36,19 @@ var elementsJs []byte
 var elementsCss []byte
 
 // NewRouter creates a router with boilerplate routes.
-func NewRouter(ctx context.Context, cfg any, spec []byte, lgr logger.Logger) (rtr *http.ServeMux) {
+func NewRouter(ctx context.Context, cfg any, title string, spec []byte, lgr logger.Logger) (rtr *http.ServeMux) {
+
+	docs := bytes.Replace(docsHtml, []byte("${TITLE}"), []byte(title), 1)
 
 	rtr = http.NewServeMux()
 	rtr.HandleFunc("GET /config", delish.ObjHandler("config", cfg, lgr))
 	rtr.HandleFunc("GET /monitor", delish.ObjHandler("status", "ok", lgr))
 	rtr.HandleFunc("POST /log/{level}", delish.LogLevel(ctx, lgr))
 	rtr.HandleFunc("GET /log", delish.GetLogLevel(ctx, lgr))
-	rtr.HandleFunc("GET /docs", getDocs)
+	rtr.HandleFunc("GET /docs", func(writer http.ResponseWriter, request *http.Request) {
+		writer.Header().Set("Content-Type", "text/html")
+		_, _ = writer.Write(docs)
+	})
 	rtr.HandleFunc("GET /elements.min.js", getDocsJs)
 	rtr.HandleFunc("GET /elements.min.css", getDocsCss)
 	rtr.HandleFunc("GET /openapi.yaml", func(writer http.ResponseWriter, request *http.Request) {
@@ -54,11 +61,6 @@ func NewRouter(ctx context.Context, cfg any, spec []byte, lgr logger.Logger) (rt
 }
 
 // unexported
-
-func getDocs(writer http.ResponseWriter, request *http.Request) {
-	writer.Header().Set("Content-Type", "text/html")
-	_, _ = writer.Write(docsHtml)
-}
 
 func getDocsJs(writer http.ResponseWriter, request *http.Request) {
 	writer.Header().Set("Content-Type", "application/javascript")

@@ -45,7 +45,7 @@ func main() {
 
 	ctx = graceful.Initialize(ctx, &wg, lgr)
 	spec := boiler.SubSpec(apiSpec, version, release, cfg.Url)
-	rtr := boiler.NewRouter(ctx, cfg, spec, lgr)
+	rtr := boiler.NewRouter(ctx, cfg, "My Excellent Service", spec, lgr)
 
 	// register additional routes on rtr ...
 
