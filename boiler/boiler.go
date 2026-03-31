@@ -10,9 +10,13 @@ import (
 	"github.com/clarktrimble/delish/logger"
 )
 
+//go:embed paths.yaml
+var pathsYaml []byte
+
 // SubSpec substitutes ${RELEASE} and ${PUBLISHED_URL} placeholders in an OpenAPI spec.
 // Version is a branch.revcount.revhash string (e.g. "main.42.abc1234"), used as a fallback
 // when release is "untagged". Release is a git tag (e.g. "1.2.3") or "untagged".
+// Todo: replace with apispec
 func SubSpec(spec []byte, version, release, url string) []byte {
 
 	apiRelease := release
@@ -58,6 +62,11 @@ func NewRouter(ctx context.Context, cfg any, title string, spec []byte, lgr logg
 	})
 
 	return
+}
+
+// ApiSpec documents endpoints provided.
+func ApiSpec() ([]byte, map[string]any) {
+	return pathsYaml, nil
 }
 
 // unexported

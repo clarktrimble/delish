@@ -1,0 +1,82 @@
+paths:
+  /config:
+    get:
+      summary: Get service configuration
+      description: Return startup service configuration
+      operationId: getConfig
+      tags:
+        - operations
+      responses:
+        '200':
+          description: Configuration retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceConfig'
+
+  /monitor:
+    get:
+      summary: Health check
+      description: Health check endpoint (returns "ok")
+      operationId: healthCheck
+      tags:
+        - operations
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+
+  /log:
+    get:
+      summary: Get log level
+      description: Get current log level
+      operationId: getLogLevel
+      tags:
+        - operations
+      responses:
+        '200':
+          description: Log level retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  level:
+                    type: string
+                    example: "info"
+
+  /log/{level}:
+    post:
+      summary: Set log level
+      description: Dynamically set log level at runtime
+      operationId: setLogLevel
+      tags:
+        - operations
+      parameters:
+        - name: level
+          in: path
+          required: true
+          description: Log level to set
+          schema:
+            type: string
+            enum: [trace, debug, info]
+          example: "debug"
+      responses:
+        '200':
+          description: Log level updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+
