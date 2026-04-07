@@ -9,6 +9,9 @@ package main
 
 import (
 	"context"
+	_ "embed"
+	"net/http"
+	"os"
 	"sync"
 
 	"github.com/clarktrimble/delish"
@@ -18,21 +21,26 @@ import (
 	"github.com/clarktrimble/sabot"
 )
 
+//go:generate apispec gen
+
+//go:embed openapi.yaml
+var apiSpec []byte
+
+// Note: generating and embedding!
+// touch openapi.yaml to avoid chicken and egg
+
 var (
 	version string
 	release string
 )
 
 type config struct {
-	Version string        `json:"version" ignored:"true"`
-	Release string        `json:"release" ignored:"true"`
-	Url     string        `json:"url" desc:"URL for API spec" default:"http://localhost:8080"`
-	Logger  *sabot.Config `json:"logger"`
+	Version string         `json:"version" ignored:"true"`
+	Release string         `json:"release" ignored:"true"`
+	Url     string         `json:"url" desc:"URL for API spec" default:"http://localhost:8080"`
+	Logger  *sabot.Config  `json:"logger"`
 	Server  *delish.Config `json:"server"`
 }
-
-//go:embed openapi.yaml
-var apiSpec []byte
 
 func main() {
 	var wg sync.WaitGroup
@@ -44,8 +52,8 @@ func main() {
 	ctx := lgr.WithFields(context.Background(), "app_id", "myapp")
 
 	ctx = graceful.Initialize(ctx, &wg, lgr)
-	spec := boiler.SubSpec(apiSpec, version, release, cfg.Url)
-	rtr := boiler.NewRouter(ctx, cfg, "My Excellent Service", spec, lgr)
+	rtr := http.NewServeMux()
+	boiler.Register(ctx, rtr, cfg, apiSpec, lgr)
 
 	// register additional routes on rtr ...
 
@@ -54,6 +62,10 @@ func main() {
 	graceful.Wait(ctx)
 }
 ```
+
+`Register` adds the boilerplate routes to any router satisfying the `Router` interface (stdlib `*http.ServeMux` or similar).
+It uses reflection to extract `Version`, `Release`, and `Url` fields from cfg, falling back gracefully when they're absent.
+The docs page title is pulled from the spec's `info.title` field.
 
 ## Routes
 
@@ -66,7 +78,12 @@ func main() {
 | `GET /docs` | Interactive API docs |
 | `GET /openapi.yaml` | OpenAPI spec |
 
-## SubSpec Placeholders
+## Spec Placeholders
 
-- `${RELEASE}` - substituted with release (or "_untagged" / "_unreleased")
-- `${PUBLISHED_URL}` - substituted with provided URL
+- `${PUBLISHED_URL}` - substituted with `Url` from cfg
+- `${RELEASE}` - substituted with `Release` or `Version` from cfg per below.
+
+Stoplight prepends "v" to the release value, so a tag like `1.2.3` displays as `v1.2.3`.
+
+When `Release` is empty, `Version` is used with an underscore prefix (e.g. `_main.42.abc1234`).
+When both are empty, `_unreleased` is used.

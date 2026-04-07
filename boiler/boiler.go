@@ -5,30 +5,12 @@ import (
 	"context"
 	_ "embed"
 	"net/http"
+	"reflect"
 
 	"github.com/clarktrimble/delish"
 	"github.com/clarktrimble/delish/logger"
+	"gopkg.in/yaml.v3"
 )
-
-//go:embed paths.yaml
-var pathsYaml []byte
-
-// SubSpec substitutes ${RELEASE} and ${PUBLISHED_URL} placeholders in an OpenAPI spec.
-// Version is a branch.revcount.revhash string (e.g. "main.42.abc1234"), used as a fallback
-// when release is "untagged". Release is a git tag (e.g. "1.2.3") or "untagged".
-// Todo: replace with apispec
-func SubSpec(spec []byte, version, release, url string) []byte {
-
-	apiRelease := release
-	if release == "untagged" {
-		apiRelease = "_" + version
-	}
-	if apiRelease == "" {
-		apiRelease = "_unreleased"
-	}
-	result := bytes.Replace(spec, []byte("${RELEASE}"), []byte(apiRelease), 1)
-	return bytes.Replace(result, []byte("${PUBLISHED_URL}"), []byte(url), 1)
-}
 
 //go:embed docs.html
 var docsHtml []byte
@@ -39,48 +21,90 @@ var elementsJs []byte
 //go:embed elements.min.css.gz
 var elementsCss []byte
 
-// NewRouter creates a router with boilerplate routes.
-func NewRouter(ctx context.Context, cfg any, title string, spec []byte, lgr logger.Logger) (rtr *http.ServeMux) {
+// Router specifies a router interface à la stdlib http.ServeMux.
+type Router interface {
+	HandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request))
+}
 
-	docs := bytes.Replace(docsHtml, []byte("${TITLE}"), []byte(title), 1)
+// Register adds boilerplate routes to rtr.
+// Version, Release, and Url are extracted from cfg via reflection when present.
+// The docs page title is extracted from the spec's info.title field.
+func Register(ctx context.Context, rtr Router, cfg any, spec []byte, lgr logger.Logger) {
 
-	rtr = http.NewServeMux()
+	version := stringField(cfg, "Version", "")
+	release := stringField(cfg, "Release", "")
+	url := stringField(cfg, "Url", "")
+
+	title := specTitle(spec, "API Documentation")
+	spec = subSpec(spec, version, release, url)
+
+	docs := bytes.ReplaceAll(docsHtml, []byte("${TITLE}"), []byte(title))
+
 	rtr.HandleFunc("GET /config", delish.ObjHandler("config", cfg, lgr))
 	rtr.HandleFunc("GET /monitor", delish.ObjHandler("status", "ok", lgr))
 	rtr.HandleFunc("POST /log/{level}", delish.LogLevel(ctx, lgr))
 	rtr.HandleFunc("GET /log", delish.GetLogLevel(ctx, lgr))
-	rtr.HandleFunc("GET /docs", func(writer http.ResponseWriter, request *http.Request) {
-		writer.Header().Set("Content-Type", "text/html")
-		_, _ = writer.Write(docs)
-	})
-	rtr.HandleFunc("GET /elements.min.js", getDocsJs)
-	rtr.HandleFunc("GET /elements.min.css", getDocsCss)
-	rtr.HandleFunc("GET /openapi.yaml", func(writer http.ResponseWriter, request *http.Request) {
-		writer.Header().Set("Content-Type", "application/x-yaml")
-		writer.Header().Set("Access-Control-Allow-Origin", "*")
-		_, _ = writer.Write(spec)
-	})
-
-	return
-}
-
-// ApiSpec documents endpoints provided.
-func ApiSpec() ([]byte, map[string]any) {
-	return pathsYaml, nil
+	rtr.HandleFunc("GET /docs", staticHandler(docs, "text/html"))
+	rtr.HandleFunc("GET /openapi.yaml", staticHandler(spec, "application/x-yaml"))
+	rtr.HandleFunc("GET /elements.min.js", gzipHandler(elementsJs, "application/javascript"))
+	rtr.HandleFunc("GET /elements.min.css", gzipHandler(elementsCss, "text/css"))
 }
 
 // unexported
 
-func getDocsJs(writer http.ResponseWriter, request *http.Request) {
-	writer.Header().Set("Content-Type", "application/javascript")
-	writer.Header().Set("Content-Encoding", "gzip")
-	writer.Header().Set("Cache-Control", "public, max-age=31536000")
-	_, _ = writer.Write(elementsJs)
+func staticHandler(body []byte, contentType string) http.HandlerFunc {
+	return func(writer http.ResponseWriter, request *http.Request) {
+		writer.Header().Set("Content-Type", contentType)
+		_, _ = writer.Write(body)
+	}
 }
 
-func getDocsCss(writer http.ResponseWriter, request *http.Request) {
-	writer.Header().Set("Content-Type", "text/css")
-	writer.Header().Set("Content-Encoding", "gzip")
-	writer.Header().Set("Cache-Control", "public, max-age=31536000")
-	_, _ = writer.Write(elementsCss)
+func gzipHandler(body []byte, contentType string) http.HandlerFunc {
+	inner := staticHandler(body, contentType)
+	return func(writer http.ResponseWriter, request *http.Request) {
+		writer.Header().Set("Content-Encoding", "gzip")
+		writer.Header().Set("Cache-Control", "public, max-age=31536000")
+		inner(writer, request)
+	}
+}
+
+func subSpec(spec []byte, version, release, url string) []byte {
+
+	var label string
+	switch {
+	case release != "":
+		label = release
+	case version != "":
+		label = "_" + version
+	default:
+		label = "_unreleased"
+	}
+	result := bytes.ReplaceAll(spec, []byte("${RELEASE}"), []byte(label))
+	return bytes.ReplaceAll(result, []byte("${PUBLISHED_URL}"), []byte(url))
+}
+
+func specTitle(spec []byte, fallback string) string {
+	var doc struct {
+		Info struct {
+			Title string `yaml:"title"`
+		} `yaml:"info"`
+	}
+	if yaml.Unmarshal(spec, &doc) == nil && doc.Info.Title != "" {
+		return doc.Info.Title
+	}
+	return fallback
+}
+
+func stringField(cfg any, name, fallback string) string {
+	v := reflect.ValueOf(cfg)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+	if v.Kind() == reflect.Struct {
+		f := v.FieldByName(name)
+		if f.IsValid() && f.Kind() == reflect.String {
+			return f.String()
+		}
+	}
+	return fallback
 }

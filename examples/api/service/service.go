@@ -13,13 +13,18 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Router specifies a router interface à la stdlib http.ServeMux.
+type Router interface {
+	HandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request))
+}
+
 // Config holds service configurables.
 type Config struct {
 	Interval time.Duration `json:"interval" desc:"work period" default:"5s"`
 }
 
 // New creates a service from Config.
-func (cfg *Config) New(rtr router, lgr logger.Logger) (svc *service) {
+func (cfg *Config) New(rtr Router, lgr logger.Logger) (svc *service) {
 
 	svc = &service{
 		interval: cfg.Interval,
@@ -48,10 +53,6 @@ func (svc *service) Start(ctx context.Context, wg *sync.WaitGroup) {
 }
 
 // unexported
-
-type router interface {
-	HandleFunc(pattern string, handler http.HandlerFunc)
-}
 
 type service struct {
 	interval time.Duration

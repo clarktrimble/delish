@@ -1,7 +1,7 @@
 paths:
   /config:
     get:
-      summary: Get service configuration
+      summary: Get configuration
       description: Return startup service configuration
       operationId: getConfig
       tags:

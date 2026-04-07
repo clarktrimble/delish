@@ -1,4 +1,4 @@
-package boiler
+package boiler_test
 
 import (
 	"context"
@@ -9,80 +9,38 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"github.com/clarktrimble/delish/boiler"
 )
 
-//go:generate moq -pkg boiler -out mock_test.go ../logger Logger
+//go:generate moq -pkg boiler_test -out mock_test.go ../logger Logger
 
 func TestBoiler(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Boiler Suite")
 }
 
-var _ = Describe("SubSpec", func() {
+var _ = Describe("Register", func() {
+
+	type svcCfg struct {
+		Foo     string `json:"foo"`
+		Version string `json:"version"`
+		Release string `json:"release"`
+		Url     string `json:"url"`
+	}
 
 	var (
-		spec    []byte
-		version string
-		release string
-		url     string
-		result  []byte
-	)
-
-	BeforeEach(func() {
-		spec = []byte("version: ${RELEASE}\nurl: ${PUBLISHED_URL}")
-		version = "abc123"
-		release = "1.2.3"
-		url = "https://example.com"
-	})
-
-	JustBeforeEach(func() {
-		result = SubSpec(spec, version, release, url)
-	})
-
-	When("release is a proper version", func() {
-		It("substitutes release and url", func() {
-			Expect(string(result)).To(Equal("version: 1.2.3\nurl: https://example.com"))
-		})
-	})
-
-	When("release is untagged", func() {
-		BeforeEach(func() {
-			release = "untagged"
-		})
-
-		It("falls back to version with underscore prefix", func() {
-			Expect(string(result)).To(Equal("version: _abc123\nurl: https://example.com"))
-		})
-	})
-
-	When("release is empty", func() {
-		BeforeEach(func() {
-			version = ""
-			release = ""
-		})
-
-		It("uses _unreleased", func() {
-			Expect(string(result)).To(Equal("version: _unreleased\nurl: https://example.com"))
-		})
-	})
-})
-
-var _ = Describe("NewRouter", func() {
-
-	var (
-		ctx   context.Context
-		cfg   any
-		title string
-		spec  []byte
-		lgr   *LoggerMock
-		rtr   *http.ServeMux
+		ctx  context.Context
+		cfg  *svcCfg
+		spec []byte
+		lgr  *LoggerMock
+		rtr  *http.ServeMux
 	)
 
 	BeforeEach(func() {
 		ctx = context.Background()
-		cfg = map[string]string{"foo": "bar"}
-		title = "Test API"
-		spec = []byte("openapi: 3.0.0")
+		cfg = &svcCfg{Foo: "bar"}
+		spec = []byte("openapi: 3.0.0\ninfo:\n  title: Test API")
 		lgr = &LoggerMock{
 			InfoFunc:  func(ctx context.Context, msg string, kv ...any) {},
 			ErrorFunc: func(ctx context.Context, msg string, err error, kv ...any) {},
@@ -90,11 +48,8 @@ var _ = Describe("NewRouter", func() {
 	})
 
 	JustBeforeEach(func() {
-		rtr = NewRouter(ctx, cfg, title, spec, lgr)
-	})
-
-	It("returns a non-nil router", func() {
-		Expect(rtr).ToNot(BeNil())
+		rtr = http.NewServeMux()
+		boiler.Register(ctx, rtr, cfg, spec, lgr)
 	})
 
 	When("requesting /monitor", func() {
@@ -130,18 +85,20 @@ var _ = Describe("NewRouter", func() {
 			Expect(rec.Code).To(Equal(http.StatusOK))
 			Expect(rec.Header().Get("Content-Type")).To(Equal("application/x-yaml"))
 			body, _ := io.ReadAll(rec.Body)
-			Expect(string(body)).To(Equal("openapi: 3.0.0"))
+			Expect(string(body)).To(Equal("openapi: 3.0.0\ninfo:\n  title: Test API"))
 		})
 	})
 
 	When("requesting /docs", func() {
-		It("returns html", func() {
+		It("returns html with title from spec", func() {
 			req := httptest.NewRequest("GET", "/docs", nil)
 			rec := httptest.NewRecorder()
 			rtr.ServeHTTP(rec, req)
 
 			Expect(rec.Code).To(Equal(http.StatusOK))
 			Expect(rec.Header().Get("Content-Type")).To(Equal("text/html"))
+			body, _ := io.ReadAll(rec.Body)
+			Expect(string(body)).To(ContainSubstring("Test API"))
 		})
 	})
 
@@ -168,6 +125,54 @@ var _ = Describe("NewRouter", func() {
 			Expect(rec.Header().Get("Content-Type")).To(Equal("text/css"))
 			Expect(rec.Header().Get("Content-Encoding")).To(Equal("gzip"))
 			Expect(rec.Header().Get("Cache-Control")).To(Equal("public, max-age=31536000"))
+		})
+	})
+
+	When("cfg has version fields", func() {
+		BeforeEach(func() {
+			cfg = &svcCfg{Foo: "bar", Version: "main.42.abc", Release: "1.2.3", Url: "https://example.com"}
+			spec = []byte("openapi: 3.0.0\ninfo:\n  title: Test API\n  version: ${RELEASE}\nservers:\n  - url: ${PUBLISHED_URL}")
+		})
+
+		It("substitutes version fields into spec", func() {
+			req := httptest.NewRequest("GET", "/openapi.yaml", nil)
+			rec := httptest.NewRecorder()
+			rtr.ServeHTTP(rec, req)
+
+			body, _ := io.ReadAll(rec.Body)
+			Expect(string(body)).To(ContainSubstring("version: 1.2.3"))
+			Expect(string(body)).To(ContainSubstring("url: https://example.com"))
+		})
+	})
+
+	When("release is empty but version is set", func() {
+		BeforeEach(func() {
+			cfg = &svcCfg{Version: "main.42.abc"}
+			spec = []byte("openapi: 3.0.0\ninfo:\n  title: Test API\n  version: ${RELEASE}")
+		})
+
+		It("falls back to version with underscore prefix", func() {
+			req := httptest.NewRequest("GET", "/openapi.yaml", nil)
+			rec := httptest.NewRecorder()
+			rtr.ServeHTTP(rec, req)
+
+			body, _ := io.ReadAll(rec.Body)
+			Expect(string(body)).To(ContainSubstring("version: _main.42.abc"))
+		})
+	})
+
+	When("spec has no title", func() {
+		BeforeEach(func() {
+			spec = []byte("openapi: 3.0.0")
+		})
+
+		It("falls back to default title in docs", func() {
+			req := httptest.NewRequest("GET", "/docs", nil)
+			rec := httptest.NewRecorder()
+			rtr.ServeHTTP(rec, req)
+
+			body, _ := io.ReadAll(rec.Body)
+			Expect(string(body)).To(ContainSubstring("API Documentation"))
 		})
 	})
 })

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"net/http"
 	"sync"
 	"time"
 
@@ -9,7 +10,6 @@ import (
 	"github.com/clarktrimble/hondo"
 
 	"github.com/clarktrimble/delish/graceful"
-	"github.com/clarktrimble/delish/minroute"
 
 	"github.com/clarktrimble/delish/examples/api/minlog"
 	"github.com/clarktrimble/delish/examples/api/service"
@@ -54,7 +54,7 @@ func main() {
 
 	// setup router
 
-	rtr := minroute.New(ctx, lgr)
+	rtr := http.NewServeMux()
 	rtr.HandleFunc("GET /config", delish.ObjHandler("config", cfg, lgr))
 
 	// start demo service
