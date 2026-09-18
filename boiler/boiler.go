@@ -26,17 +26,19 @@ type Router interface {
 	HandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request))
 }
 
-// Register adds boilerplate routes to rtr.
-// Version, Release, and Url are extracted from cfg via reflection when present.
-// The docs page title is extracted from the spec's info.title field.
+// Register adds boilerplate routes to a router.
 func Register(ctx context.Context, rtr Router, cfg any, spec []byte, lgr logger.Logger) {
 
-	version := stringField(cfg, "Version", "")
-	release := stringField(cfg, "Release", "")
-	url := stringField(cfg, "Url", "")
+	fingerprint := stringField(cfg, "Fingerprint")
+	// Todo: Remove Version support once consumers have converted to Fingerprint.
+	if fingerprint == "" {
+		fingerprint = stringField(cfg, "Version")
+	}
+	release := stringField(cfg, "Release")
+	url := stringField(cfg, "Url")
 
 	title := specTitle(spec, "API Documentation")
-	spec = subSpec(spec, version, release, url)
+	spec = subSpec(spec, fingerprint, release, url)
 
 	docs := bytes.ReplaceAll(docsHtml, []byte("${TITLE}"), []byte(title))
 
@@ -68,14 +70,14 @@ func gzipHandler(body []byte, contentType string) http.HandlerFunc {
 	}
 }
 
-func subSpec(spec []byte, version, release, url string) []byte {
+func subSpec(spec []byte, fingerprint, release, url string) []byte {
 
 	var label string
 	switch {
 	case release != "":
 		label = release
-	case version != "":
-		label = "_" + version
+	case fingerprint != "":
+		label = "_" + fingerprint
 	default:
 		label = "_unreleased"
 	}
@@ -95,7 +97,7 @@ func specTitle(spec []byte, fallback string) string {
 	return fallback
 }
 
-func stringField(cfg any, name, fallback string) string {
+func stringField(cfg any, name string) string {
 	v := reflect.ValueOf(cfg)
 	if v.Kind() == reflect.Ptr {
 		v = v.Elem()
@@ -106,5 +108,5 @@ func stringField(cfg any, name, fallback string) string {
 			return f.String()
 		}
 	}
-	return fallback
+	return ""
 }

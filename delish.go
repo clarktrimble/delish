@@ -17,7 +17,7 @@ import (
 // Config is the server's configuration
 type Config struct {
 	Host    string        `json:"host" desc:"hostname or ip for which to bind"`
-	Port    int           `json:"port" desc:"port on which to listen" required:"true"`
+	Port    int           `json:"port" desc:"port on which to listen" default:"3031"`
 	Timeout time.Duration `json:"timeout" desc:"characteristic timeout" default:"10s"`
 }
 

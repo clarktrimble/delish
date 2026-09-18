@@ -30,13 +30,13 @@ var apiSpec []byte
 // touch openapi.yaml to avoid chicken and egg
 
 var (
-	version string
-	release string
+	fingerprint string
+	release     string
 )
 
 type config struct {
-	Version string         `json:"version" ignored:"true"`
-	Release string         `json:"release" ignored:"true"`
+	Fingerprint string         `json:"fingerprint" ignored:"true"`
+	Release     string         `json:"release" ignored:"true"`
 	Url     string         `json:"url" desc:"URL for API spec" default:"http://localhost:8080"`
 	Logger  *sabot.Config  `json:"logger"`
 	Server  *delish.Config `json:"server"`
@@ -45,7 +45,7 @@ type config struct {
 func main() {
 	var wg sync.WaitGroup
 
-	cfg := &config{Version: version, Release: release}
+	cfg := &config{Fingerprint: fingerprint, Release: release}
 	launch.Load(cfg, "myapp", "my excellent service")
 
 	lgr := cfg.Logger.New(os.Stdout)
@@ -64,7 +64,7 @@ func main() {
 ```
 
 `Register` adds the boilerplate routes to any router satisfying the `Router` interface (stdlib `*http.ServeMux` or similar).
-It uses reflection to extract `Version`, `Release`, and `Url` fields from cfg, falling back gracefully when they're absent.
+It uses reflection to extract `Release`, `Fingerprint`, and `Url` fields from cfg, falling back gracefully when they're absent. `Version` is supported as a legacy fallback when `Fingerprint` is empty.
 The docs page title is pulled from the spec's `info.title` field.
 
 ## Routes
@@ -81,9 +81,10 @@ The docs page title is pulled from the spec's `info.title` field.
 ## Spec Placeholders
 
 - `${PUBLISHED_URL}` - substituted with `Url` from cfg
-- `${RELEASE}` - substituted with `Release` or `Version` from cfg per below.
+- `${RELEASE}` - substituted with `Release`, `Fingerprint`, or legacy `Version` from cfg per below.
 
 Stoplight prepends "v" to the release value, so a tag like `1.2.3` displays as `v1.2.3`.
 
-When `Release` is empty, `Version` is used with an underscore prefix (e.g. `_main.42.abc1234`).
-When both are empty, `_unreleased` is used.
+When `Release` is empty, `Fingerprint` is used with an underscore prefix (e.g. `_main.42.abc1234`).
+When `Fingerprint` is empty, legacy `Version` is used instead.
+When all are empty, `_unreleased` is used.

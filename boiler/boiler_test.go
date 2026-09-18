@@ -23,10 +23,11 @@ func TestBoiler(t *testing.T) {
 var _ = Describe("Register", func() {
 
 	type svcCfg struct {
-		Foo     string `json:"foo"`
-		Version string `json:"version"`
-		Release string `json:"release"`
-		Url     string `json:"url"`
+		Foo         string `json:"foo"`
+		Fingerprint string `json:"fingerprint"`
+		Version     string `json:"version"`
+		Release     string `json:"release"`
+		Url         string `json:"url"`
 	}
 
 	var (
@@ -128,9 +129,9 @@ var _ = Describe("Register", func() {
 		})
 	})
 
-	When("cfg has version fields", func() {
+	When("cfg has release fields", func() {
 		BeforeEach(func() {
-			cfg = &svcCfg{Foo: "bar", Version: "main.42.abc", Release: "1.2.3", Url: "https://example.com"}
+			cfg = &svcCfg{Foo: "bar", Fingerprint: "main.42.abc", Release: "1.2.3", Url: "https://example.com"}
 			spec = []byte("openapi: 3.0.0\ninfo:\n  title: Test API\n  version: ${RELEASE}\nservers:\n  - url: ${PUBLISHED_URL}")
 		})
 
@@ -145,7 +146,39 @@ var _ = Describe("Register", func() {
 		})
 	})
 
-	When("release is empty but version is set", func() {
+	When("release is empty but fingerprint is set", func() {
+		BeforeEach(func() {
+			cfg = &svcCfg{Fingerprint: "main.42.abc"}
+			spec = []byte("openapi: 3.0.0\ninfo:\n  title: Test API\n  version: ${RELEASE}")
+		})
+
+		It("falls back to fingerprint with underscore prefix", func() {
+			req := httptest.NewRequest("GET", "/openapi.yaml", nil)
+			rec := httptest.NewRecorder()
+			rtr.ServeHTTP(rec, req)
+
+			body, _ := io.ReadAll(rec.Body)
+			Expect(string(body)).To(ContainSubstring("version: _main.42.abc"))
+		})
+	})
+
+	When("fingerprint and version are set", func() {
+		BeforeEach(func() {
+			cfg = &svcCfg{Fingerprint: "main.42.abc", Version: "legacy.1"}
+			spec = []byte("openapi: 3.0.0\ninfo:\n  title: Test API\n  version: ${RELEASE}")
+		})
+
+		It("prefers fingerprint", func() {
+			req := httptest.NewRequest("GET", "/openapi.yaml", nil)
+			rec := httptest.NewRecorder()
+			rtr.ServeHTTP(rec, req)
+
+			body, _ := io.ReadAll(rec.Body)
+			Expect(string(body)).To(ContainSubstring("version: _main.42.abc"))
+		})
+	})
+
+	When("only legacy version is set", func() {
 		BeforeEach(func() {
 			cfg = &svcCfg{Version: "main.42.abc"}
 			spec = []byte("openapi: 3.0.0\ninfo:\n  title: Test API\n  version: ${RELEASE}")
